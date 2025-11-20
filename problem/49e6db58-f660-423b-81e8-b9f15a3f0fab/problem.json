@@ -1,0 +1,32 @@
+{
+  "id": "fc4c22f0-5ff4-4c68-a73a-a2327e2dbd35",
+  "title": "Longest Substring Without Repeating Characters",
+  "description": "Given a string `s`, find the length of the longest substring without repeating characters.",
+  "difficulty": "medium",
+  "constraints": [
+    "0 <= s.length <= 5 * 10^4",
+    "s consists of English letters, digits, symbols and spaces."
+  ],
+  "examples": [
+    {
+      "input": "abcabcbb",
+      "output": "3",
+      "explanation": "The answer is \"abc\", with the length of 3."
+    },
+    {
+      "input": "bbbbb",
+      "output": "1",
+      "explanation": "The answer is \"b\", with the length of 1."
+    },
+    {
+      "input": "pwwkew",
+      "output": "3",
+      "explanation": "The answer is \"wke\", with the length of 3. Notice that the answer must be a substring, \"pwke\" is a subsequence and not a substring."
+    }
+  ],
+  "functionSignature": {
+    "javascript": "/**\n * @param {string} s\n * @return {number}\n */\nvar lengthOfLongestSubstring = function(s) { \n\n};",
+    "typescript": "function lengthOfLongestSubstring(s: string): number { \n\n};",
+    "python": "def length_of_longest_substring(s: str) -> int:\n"
+  }
+}

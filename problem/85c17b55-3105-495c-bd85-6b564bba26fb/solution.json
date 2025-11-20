@@ -1,0 +1,8 @@
+{
+  "problemId": "37bbc93d-68e3-41cc-8fc1-2e4d7827da2d",
+  "language": "typescript",
+  "code": "function solution(s: string, t: string): boolean {\n    if (s.length !== t.length) {\n        return false;\n    }\n\n    const sMap: Map<string, string> = new Map();\n    const tMap: Map<string, string> = new Map();\n\n    for (let i = 0; i < s.length; i++) {\n        const sChar = s[i];\n        const tChar = t[i];\n\n        if (sMap.has(sChar)) {\n            if (sMap.get(sChar) !== tChar) {\n                return false;\n            }\n        } else {\n            sMap.set(sChar, tChar);\n        }\n\n        if (tMap.has(tChar)) {\n            if (tMap.get(tChar) !== sChar) {\n                return false;\n            }\n        } else {\n            tMap.set(tChar, sChar);\n        }\n    }\n\n    return true;\n}",
+  "explanation": "The solution uses two hash maps, `sMap` and `tMap`, to store the mappings between characters in string `s` and string `t`. The algorithm iterates through the strings `s` and `t` simultaneously. For each character pair (sChar, tChar) at index `i`, it checks if `sChar` already exists in `sMap`. If it does, it verifies that the mapping `sMap.get(sChar)` is equal to `tChar`. If it's not, it means that `sChar` is mapped to a different character in `t`, violating the isomorphic property, so the function returns `false`. If `sChar` is not in `sMap`, it adds the mapping `sChar -> tChar` to `sMap`. The same logic is applied to `tChar` and `tMap` to ensure that no two characters in `s` map to the same character in `t`. If the loop completes without finding any violations, it means the strings are isomorphic, and the function returns `true`.",
+  "timeComplexity": "O(n)",
+  "spaceComplexity": "O(1)"
+}

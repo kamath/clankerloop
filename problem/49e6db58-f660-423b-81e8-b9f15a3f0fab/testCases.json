@@ -1,0 +1,90 @@
+[
+  {
+    "id": "484e9c96-0636-4a00-9ed1-3d3ee0148223",
+    "description": "Empty string",
+    "input": "",
+    "expectedOutput": 0,
+    "isEdgeCase": true,
+    "isSample": true
+  },
+  {
+    "id": "86e871e8-8746-4669-a2d3-fa68092ca408",
+    "description": "String with a single character",
+    "input": "a",
+    "expectedOutput": 1,
+    "isEdgeCase": true,
+    "isSample": true
+  },
+  {
+    "id": "d6efaa99-413f-4ed8-b0e3-d6f507bb3639",
+    "description": "String with all unique characters",
+    "input": "abcdefg",
+    "expectedOutput": 7,
+    "isEdgeCase": false,
+    "isSample": true
+  },
+  {
+    "id": "850a6f85-8e57-4ea0-9341-6b593e2bddcc",
+    "description": "String with all repeating characters",
+    "input": "bbbbb",
+    "expectedOutput": 1,
+    "isEdgeCase": false,
+    "isSample": false
+  },
+  {
+    "id": "7996d8cd-a94f-4dd9-8fe8-6e11f09aa70a",
+    "description": "String with repeating characters at the beginning",
+    "input": "bbbbbabcdefg",
+    "expectedOutput": 7,
+    "isEdgeCase": false,
+    "isSample": false
+  },
+  {
+    "id": "1278e2b9-d490-413b-9950-52987e279f05",
+    "description": "String with repeating characters at the end",
+    "input": "abcabcbb",
+    "expectedOutput": 3,
+    "isEdgeCase": false,
+    "isSample": false
+  },
+  {
+    "id": "df8f0f66-49e1-4b11-a08e-be43152fa8b0",
+    "description": "String with repeating characters in the middle",
+    "input": "abcabcbb",
+    "expectedOutput": 3,
+    "isEdgeCase": false,
+    "isSample": false
+  },
+  {
+    "id": "9fab089f-5f36-407d-9a9b-b7444cc8d58f",
+    "description": "String with consecutive repeating characters",
+    "input": "bbbbb",
+    "expectedOutput": 1,
+    "isEdgeCase": false,
+    "isSample": false
+  },
+  {
+    "id": "dddf870a-0d33-4e20-9d3f-1c01751d77af",
+    "description": "String with repeating character far apart",
+    "input": "abcabcbb",
+    "expectedOutput": 3,
+    "isEdgeCase": false,
+    "isSample": false
+  },
+  {
+    "id": "3a7d2d7f-e6f1-4975-a8a3-44e2dcc6bc48",
+    "description": "String with very long substring without repeats",
+    "input": "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz",
+    "expectedOutput": 26,
+    "isEdgeCase": false,
+    "isSample": false
+  },
+  {
+    "id": "9ae9dab4-05c0-449f-a6a6-b7baf9b490e8",
+    "description": "String with unicode characters",
+    "input": "你好世界",
+    "expectedOutput": 4,
+    "isEdgeCase": false,
+    "isSample": false
+  }
+]

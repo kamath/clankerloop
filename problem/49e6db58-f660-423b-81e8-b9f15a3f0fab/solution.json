@@ -1,0 +1,8 @@
+{
+  "problemId": "fc4c22f0-5ff4-4c68-a73a-a2327e2dbd35",
+  "language": "javascript",
+  "code": "/**\n * @param {string} s\n * @return {number}\n */\nvar solution = function(s) {\n    let maxLength = 0;\n    let start = 0;\n    let charIndexMap = {};\n\n    for (let end = 0; end < s.length; end++) {\n        const currentChar = s[end];\n\n        if (charIndexMap[currentChar] !== undefined && charIndexMap[currentChar] >= start) {\n            start = charIndexMap[currentChar] + 1;\n        }\n\n        charIndexMap[currentChar] = end;\n        maxLength = Math.max(maxLength, end - start + 1);\n    }\n\n    return maxLength;\n};",
+  "explanation": "The solution uses a sliding window approach to find the longest substring without repeating characters. A `charIndexMap` object stores the most recent index of each character encountered. The `start` variable marks the beginning of the current substring, and `end` iterates through the string.\n\nFor each character at index `end`:\n1.  If the character is already in the `charIndexMap` and its last seen index is within the current substring (i.e., greater than or equal to `start`), the `start` pointer is moved to the position after the previous occurrence of the character.\n2.  The `charIndexMap` is updated with the current index of the character.\n3.  The `maxLength` is updated with the maximum between the current `maxLength` and the length of the current substring (end - start + 1).\n\nThis way, the algorithm keeps track of the longest substring found so far without repeating characters.",
+  "timeComplexity": "O(n)",
+  "spaceComplexity": "O(min(m, n)) where n is the length of the string, and m is the size of the character set."
+}

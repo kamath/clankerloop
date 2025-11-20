@@ -1,0 +1,5 @@
+{
+  "testCaseId": "484e9c96-0636-4a00-9ed1-3d3ee0148223",
+  "language": "javascript",
+  "code": "console.log(JSON.stringify(\"\"));"
+}

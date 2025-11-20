@@ -1,0 +1,33 @@
+{
+  "id": "37bbc93d-68e3-41cc-8fc1-2e4d7827da2d",
+  "title": "Isomorphic Strings",
+  "description": "Given two strings s and t, determine if they are isomorphic.\n\nTwo strings s and t are isomorphic if the characters in s can be replaced to get t.\n\nAll occurrences of a character must be replaced with another character while preserving the order of characters. No two characters may map to the same character, but a character may map to itself.",
+  "difficulty": "easy",
+  "constraints": [
+    "1 <= s.length <= 5 * 10^4",
+    "t.length == s.length",
+    "s and t consist of any valid ascii character."
+  ],
+  "examples": [
+    {
+      "input": "s = \"egg\", t = \"add\"",
+      "output": "true",
+      "explanation": "In this case, 'e' can be replaced by 'a' and 'g' can be replaced by 'd'."
+    },
+    {
+      "input": "s = \"foo\", t = \"bar\"",
+      "output": "false",
+      "explanation": "No two letters may map to the same letter, so 'o' cannot be mapped to both 'a' and 'r'."
+    },
+    {
+      "input": "s = \"paper\", t = \"title\"",
+      "output": "true",
+      "explanation": "In this case, 'p' can be replaced by 't', 'a' can be replaced by 'i', 'e' can be replaced by 'l', and 'r' can be replaced by 'e'."
+    }
+  ],
+  "functionSignature": {
+    "javascript": "/**\n * @param {string} s\n * @param {string} t\n * @return {boolean}\n */\nvar isIsomorphic = function(s, t) { \n\n};",
+    "typescript": "function isIsomorphic(s: string, t: string): boolean { \n\n};",
+    "python": "def isIsomorphic(s: str, t: str) -> bool:"
+  }
+}

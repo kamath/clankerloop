@@ -1,0 +1,5 @@
+{
+  "testCaseId": "df8f0f66-49e1-4b11-a08e-be43152fa8b0",
+  "language": "javascript",
+  "code": "const inputString = \"abcabcbb\";\nconsole.log(JSON.stringify(inputString));"
+}

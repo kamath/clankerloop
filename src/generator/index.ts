@@ -1,3 +1,5 @@
+import { writeFile } from "fs/promises";
+import { join } from "path";
 import type {
   Problem,
   Solution,
@@ -28,17 +30,27 @@ export async function generateCompleteProblem(
     topic?: string;
     numTestCases?: number;
     numSampleTestCases?: number;
+    outputDir?: string;
   } = {}
 ): Promise<ProblemPackage> {
-  const { topic, numTestCases = 10, numSampleTestCases = 3 } = options;
+  const { topic, numTestCases = 10, numSampleTestCases = 3, outputDir } = options;
+
+  // Helper function to save to output directory
+  const saveToDir = async (filename: string, data: unknown) => {
+    if (outputDir) {
+      await writeFile(join(outputDir, filename), JSON.stringify(data, null, 2), "utf-8");
+    }
+  };
 
   console.log("\n🎯 Generating problem...");
   const problem = await generateProblem(model, difficulty, topic);
   console.log(`✓ Generated problem: "${problem.title}"`);
+  await saveToDir("problem.json", problem);
 
   console.log("\n💡 Generating solution...");
   const solution = await generateSolution(model, problem, language);
   console.log(`✓ Generated solution (${solution.timeComplexity} time, ${solution.spaceComplexity} space)`);
+  await saveToDir("solution.json", solution);
 
   console.log("\n📝 Generating test case descriptions...");
   const testDescriptions = await generateTestCaseDescriptions(
@@ -48,6 +60,7 @@ export async function generateCompleteProblem(
     numTestCases
   );
   console.log(`✓ Generated ${testDescriptions.length} test case descriptions`);
+  await saveToDir("testDescriptions.json", testDescriptions);
 
   console.log("\n🧪 Generating and executing test cases...");
   const executor = createExecutor(language);
@@ -61,6 +74,7 @@ export async function generateCompleteProblem(
     try {
       // Generate code to create test input
       const inputCode = await generateTestInputCode(model, problem, desc, language);
+      await saveToDir(`testInputCode_${i}.json`, inputCode);
 
       // Execute code to get the input value
       const inputResult = await executor.execute(inputCode.code);
@@ -101,6 +115,7 @@ export async function generateCompleteProblem(
   }
 
   console.log(`\n✓ Successfully generated ${allTestCases.length} test cases`);
+  await saveToDir("testCases.json", allTestCases);
 
   // Split into sample and hidden test cases
   const sampleTestCases = allTestCases.filter((tc) => tc.isSample);
@@ -109,9 +124,12 @@ export async function generateCompleteProblem(
   console.log(`  - ${sampleTestCases.length} sample test cases (visible to user)`);
   console.log(`  - ${hiddenTestCases.length} hidden test cases (for validation)`);
 
-  return {
+  const problemPackage: ProblemPackage = {
     problem,
     sampleTestCases,
     hiddenTestCases,
   };
+  await saveToDir("problemPackage.json", problemPackage);
+
+  return problemPackage;
 }

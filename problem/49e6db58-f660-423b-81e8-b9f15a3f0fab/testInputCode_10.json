@@ -1,0 +1,5 @@
+{
+  "testCaseId": "9ae9dab4-05c0-449f-a6a6-b7baf9b490e8",
+  "language": "javascript",
+  "code": "const inputString = \"你好世界\"; // Unicode string\n\nconsole.log(JSON.stringify(inputString));"
+}

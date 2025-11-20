@@ -1,0 +1,5 @@
+{
+  "testCaseId": "f049d3e5-c141-4043-a75e-b1c4af5fbb3e",
+  "language": "typescript",
+  "code": "const s = \"foo\";\nconst t = \"bar\";\n\nconsole.log(JSON.stringify([s, t]));"
+}

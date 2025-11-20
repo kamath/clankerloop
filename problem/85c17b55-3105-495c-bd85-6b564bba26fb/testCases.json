@@ -1,0 +1,123 @@
+[
+  {
+    "id": "0a82a635-85d4-4ab8-b551-cdcef3721edf",
+    "description": "Basic test case: isomorphic strings with a simple mapping.",
+    "input": [
+      "egg",
+      "add"
+    ],
+    "expectedOutput": true,
+    "isEdgeCase": false,
+    "isSample": true
+  },
+  {
+    "id": "f049d3e5-c141-4043-a75e-b1c4af5fbb3e",
+    "description": "Basic test case: non-isomorphic strings where one character maps to two different characters.",
+    "input": [
+      "foo",
+      "bar"
+    ],
+    "expectedOutput": false,
+    "isEdgeCase": false,
+    "isSample": true
+  },
+  {
+    "id": "09493907-dbf6-48da-96a3-bcd13cf1f765",
+    "description": "Basic test case: isomorphic strings with character mapping to itself.",
+    "input": [
+      "paper",
+      "title"
+    ],
+    "expectedOutput": true,
+    "isEdgeCase": false,
+    "isSample": false
+  },
+  {
+    "id": "1ac280bd-7d02-469e-9889-b207e21a29c9",
+    "description": "Edge case: empty strings.",
+    "input": [
+      "",
+      ""
+    ],
+    "expectedOutput": true,
+    "isEdgeCase": true,
+    "isSample": false
+  },
+  {
+    "id": "84370e24-2ae5-4658-b153-a67adacdf7c8",
+    "description": "Edge case: single-character strings.",
+    "input": [
+      "a",
+      "b"
+    ],
+    "expectedOutput": true,
+    "isEdgeCase": true,
+    "isSample": false
+  },
+  {
+    "id": "4af9aba4-d8c1-4538-8639-70f6d64e95db",
+    "description": "Complex case: strings with repeating patterns that are isomorphic.",
+    "input": [
+      "paper",
+      "title"
+    ],
+    "expectedOutput": true,
+    "isEdgeCase": false,
+    "isSample": false
+  },
+  {
+    "id": "41aaf6f9-0254-42e1-aad1-b22460b170bf",
+    "description": "Complex case: strings where one string has repeating characters and the other doesn't, making them non-isomorphic.",
+    "input": [
+      "egg",
+      "foo"
+    ],
+    "expectedOutput": true,
+    "isEdgeCase": false,
+    "isSample": false
+  },
+  {
+    "id": "2e2447ac-4e26-444d-a752-0d65e1544214",
+    "description": "Complex case: Long strings that are isomorphic.",
+    "input": [
+      "paper",
+      "title"
+    ],
+    "expectedOutput": true,
+    "isEdgeCase": false,
+    "isSample": false
+  },
+  {
+    "id": "70f262fd-7ef9-4983-b933-7ccc6cd2120f",
+    "description": "Complex case: strings with some identical characters but ultimately not isomorphic.",
+    "input": [
+      "badc",
+      "baba"
+    ],
+    "expectedOutput": false,
+    "isEdgeCase": false,
+    "isSample": false
+  },
+  {
+    "id": "520cc353-e07c-40e8-ad80-30b49d612e21",
+    "description": "Edge case: strings where all characters are the same.",
+    "input": [
+      "bbbbb",
+      "ccccc"
+    ],
+    "expectedOutput": true,
+    "isEdgeCase": true,
+    "isSample": false
+  },
+  {
+    "id": "520f0264-48b2-4608-93e1-7df30fb9aac4",
+    "description": "Complex case: near isomorphic strings that differ only in one character mapping.",
+    "input": [
+      "paper",
+      "title"
+    ],
+    "expectedOutput": true,
+    "isEdgeCase": false,
+    "isSample": false
+  }
+]

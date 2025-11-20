@@ -1,0 +1,5 @@
+{
+  "testCaseId": "3a7d2d7f-e6f1-4975-a8a3-44e2dcc6bc48",
+  "language": "javascript",
+  "code": "const inputString = \"abcdefghijklmnopqrstuvwxyz\";\nconst repeatedString = inputString.repeat(50); // repeat string to create a long substring\n\nconsole.log(JSON.stringify(repeatedString));"
+}

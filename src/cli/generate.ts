@@ -1,5 +1,6 @@
-import { writeFile } from "fs/promises";
+import { mkdir } from "fs/promises";
 import { join } from "path";
+import { randomUUID } from "crypto";
 import type { Difficulty, Language } from "../types/index.js";
 import { generateCompleteProblem } from "../generator/index.js";
 import { formatProblem, formatSampleTestCases, showProgress, showSuccess } from "../utils/index.js";
@@ -25,16 +26,21 @@ export async function generateCommand(options: GenerateOptions): Promise<void> {
     topic,
     numTestCases = 10,
     numSamples = 3,
-    output,
   } = options;
 
   try {
-    showProgress("Generating complete problem package");
+    // Generate UUID and create output directory
+    const uuid = randomUUID();
+    const outputDir = join(process.cwd(), "problem", uuid);
+    await mkdir(outputDir, { recursive: true });
+
+    showProgress(`Generating complete problem package (ID: ${uuid})`);
 
     const problemPackage = await generateCompleteProblem(model, difficulty, language, {
       topic,
       numTestCases,
       numSampleTestCases: numSamples,
+      outputDir,
     });
 
     // Display the problem
@@ -42,14 +48,7 @@ export async function generateCommand(options: GenerateOptions): Promise<void> {
     console.log(formatProblem(problemPackage.problem));
     console.log(formatSampleTestCases(problemPackage.sampleTestCases));
 
-    // Save to file if requested
-    if (output) {
-      const outputPath = join(process.cwd(), output);
-      await writeFile(outputPath, JSON.stringify(problemPackage, null, 2), "utf-8");
-      showSuccess(`Problem saved to: ${outputPath}`);
-    }
-
-    showSuccess("Problem generation complete!");
+    showSuccess(`Problem generation complete! Files saved to: ${outputDir}`);
     console.log(`\n📊 Stats:`);
     console.log(`   Difficulty: ${problemPackage.problem.difficulty}`);
     console.log(`   Language: ${language}`);
