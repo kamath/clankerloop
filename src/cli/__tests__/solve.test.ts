@@ -2,30 +2,37 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, mock, spyOn } f
 import { readFile } from 'fs/promises';
 import { join } from 'path';
 
-import { createProblem, createTestCases } from '../../db/repositories/index.js';
-import { solveCommand } from '../solve.js';
-
 import type { ProblemPackage } from '../../types/index.js';
 
 const MOCK_DATA_DIR = join(process.cwd(), 'problem', 'TEST__GOOD_INPUTS');
 
+let mockProblemPackage: ProblemPackage;
 let testProblemId: string;
+
+// Mock the database modules before importing solveCommand
+mock.module('../../db/repositories/index.js', () => ({
+  getProblemPackage: (problemId: string) => {
+    if (problemId === testProblemId) {
+      return Promise.resolve(mockProblemPackage);
+    }
+    return Promise.resolve(null);
+  },
+}));
+
+mock.module('../../db/index.js', () => ({
+  closeConnection: () => Promise.resolve(),
+}));
+
+import { solveCommand } from '../solve.js';
 
 beforeAll(async () => {
   // Load mock data from JSON files
-  const mockProblemPackage: ProblemPackage = JSON.parse(
+  mockProblemPackage = JSON.parse(
     await readFile(join(MOCK_DATA_DIR, 'problemPackage.json'), 'utf-8'),
   );
 
-  // Insert test data into the database
-  testProblemId = await createProblem(mockProblemPackage.problem);
-
-  // Combine sample and hidden test cases and insert them
-  const allTestCases = [
-    ...mockProblemPackage.sampleTestCases,
-    ...mockProblemPackage.hiddenTestCases,
-  ];
-  await createTestCases(testProblemId, allTestCases);
+  // Use the problem ID from the fixture
+  testProblemId = mockProblemPackage.problem.id || '37bbc93d-68e3-41cc-8fc1-2e4d7827da2d';
 });
 
 describe('solveCommand', () => {

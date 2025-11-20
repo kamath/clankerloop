@@ -39,7 +39,7 @@ Constraints:
 ${problem.constraints.join('\n')}
 
 Examples:
-${problem.examples.map((ex, i) => `Example ${i + 1}:\nInput: ${ex.input}\nOutput: ${ex.output}${ex.explanation ? `\nExplanation: ${ex.explanation}` : ''}`).join('\n\n')}
+${problem.examples.map((ex, i) => `Example ${i + 1}:\nInput: ${ex.input}`).join('\n\n')}
 
 Reference Function Signature (${language}):
 ${problem.functionSignature[language]}
