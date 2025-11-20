@@ -6,7 +6,8 @@
     "cli": "bun run index.ts",
     "server": "bun run server.ts",
     "generate": "bun run index.ts generate --model \"anthropic/claude-haiku-4.5\" --difficulty easy --language javascript --tests 5 --samples 2 --output problem/problem.json",
-    "solve": "bun run index.ts solve --problem problem/gemini.json --solution problem/solution.js --language javascript"
+    "solve": "bun run index.ts solve --problem problem/gemini.json --solution problem/solution.js --language javascript",
+    "build": "bun run build.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"
