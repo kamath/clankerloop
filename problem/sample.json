@@ -1,0 +1,126 @@
+{
+  "problem": {
+    "id": "e87daa37-fc14-4914-9f30-825d3eb44a21",
+    "title": "Longest Palindromic Substring Without Using Extra Space",
+    "description": "Given a string `s`, find the longest palindromic substring in `s`. You must do this *without* using any extra space (O(1) space complexity).",
+    "difficulty": "medium",
+    "constraints": [
+      "1 <= s.length <= 1000",
+      "s consists of only digits and English letters."
+    ],
+    "examples": [
+      {
+        "input": "babad",
+        "output": "bab",
+        "explanation": "\"aba\" is also a valid answer."
+      },
+      {
+        "input": "cbbd",
+        "output": "bb",
+        "explanation": "The longest palindromic substring is \"bb\"."
+      },
+      {
+        "input": "a",
+        "output": "a",
+        "explanation": "A single character is a palindrome."
+      }
+    ],
+    "functionSignature": {
+      "javascript": "/**\n * @param {string} s\n * @return {string}\n */\nvar longestPalindrome = function(s) { \n\n};",
+      "typescript": "function longestPalindrome(s: string): string { \n\n};",
+      "python": "def longestPalindrome(s: str) -> str:\n\n    return \"\""
+    }
+  },
+  "sampleTestCases": [
+    {
+      "id": "9f4d6eed-31d6-48e4-9f14-20b47884ef6b",
+      "description": "Basic case: A simple palindrome string",
+      "input": "racecar",
+      "expectedOutput": "racecar",
+      "isEdgeCase": false,
+      "isSample": true
+    },
+    {
+      "id": "e22acb08-5cc7-4fc0-ad48-5a4399cefc57",
+      "description": "Basic case: A string with a palindrome in the middle",
+      "input": "babad",
+      "expectedOutput": "bab",
+      "isEdgeCase": false,
+      "isSample": true
+    },
+    {
+      "id": "5faa6b11-0d1a-492b-b182-ee1926e91490",
+      "description": "Basic case: A string with no palindromes of length > 1",
+      "input": "abc",
+      "expectedOutput": "a",
+      "isEdgeCase": false,
+      "isSample": true
+    }
+  ],
+  "hiddenTestCases": [
+    {
+      "id": "970e214e-b9bf-4cb7-bc63-1c1f95ff1a22",
+      "description": "Edge case: An empty string",
+      "input": "",
+      "expectedOutput": "",
+      "isEdgeCase": true,
+      "isSample": false
+    },
+    {
+      "id": "23ae4c4a-9a3a-408e-8d30-a745319473ec",
+      "description": "Edge case: A single-character string",
+      "input": "a",
+      "expectedOutput": "a",
+      "isEdgeCase": true,
+      "isSample": false
+    },
+    {
+      "id": "33d05c74-a99f-4dfc-9ddc-a4dd307bf8b3",
+      "description": "Edge case: String with two identical characters",
+      "input": "aa",
+      "expectedOutput": "aa",
+      "isEdgeCase": true,
+      "isSample": false
+    },
+    {
+      "id": "feaeab0a-c628-459d-bab9-9b9498fdfded",
+      "description": "Edge case: String with two different characters",
+      "input": "ab",
+      "expectedOutput": "a",
+      "isEdgeCase": true,
+      "isSample": false
+    },
+    {
+      "id": "dee0de6e-2698-4f4d-afa1-ae07a1b2c683",
+      "description": "Complex case: A long string with overlapping palindromes",
+      "input": "bananasareverydeliciousandsometimesveryannoying",
+      "expectedOutput": "anana",
+      "isEdgeCase": false,
+      "isSample": false
+    },
+    {
+      "id": "cdbe9ca6-e2cd-497f-87f9-0856d3d92c8f",
+      "description": "Complex case: A string with a very long palindrome at the beginning",
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab",
+      "expectedOutput": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "isEdgeCase": false,
+      "isSample": false
+    },
+    {
+      "id": "e73b8216-0036-4525-a0e9-30e974c59e09",
+      "description": "Complex case: String containing the same character repeated multiple times.",
+      "input": "aaaaaaaaaa",
+      "expectedOutput": "aaaaaaaaaa",
+      "isEdgeCase": false,
+      "isSample": false
+    },
+    {
+      "id": "3bbc5a05-4239-42b1-93e0-8088fab95862",
+      "description": "Complex case: A string with even and odd length palindromes to compare",
+      "input": "babad",
+      "expectedOutput": "bab",
+      "isEdgeCase": false,
+      "isSample": false
+    }
+  ]
+}

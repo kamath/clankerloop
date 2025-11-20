@@ -3,8 +3,11 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
+    "cli": "bun run index.ts",
+    "server": "bun run server.ts",
     "generate": "bun run index.ts generate --model \"anthropic/claude-haiku-4.5\" --difficulty easy --language javascript --tests 5 --samples 2 --output problem/problem.json",
-    "solve": "bun run index.ts solve --problem problem/gemini.json --solution problem/solution.js --language javascript"
+    "solve": "bun run index.ts solve --problem problem/gemini.json --solution problem/solution.js --language javascript",
+    "build": "bun run build.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"
@@ -13,8 +16,12 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@hono/swagger-ui": "^0.5.2",
+    "@hono/zod-openapi": "^1.1.5",
+    "@hono/zod-validator": "^0.7.5",
     "ai": "^5.0.95",
     "commander": "^14.0.2",
+    "hono": "^4.10.6",
     "zod": "^4.1.12"
   }
 }
