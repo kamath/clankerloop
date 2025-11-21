@@ -1,13 +1,12 @@
 import { eq } from 'drizzle-orm';
-
-import { db } from '../index';
 import {
+  db,
   problems,
   functionSignatures,
   languages,
   difficulties,
   testCases,
-} from '../schema';
+} from '@repo/db';
 
 import type {
   Problem as AppProblem,

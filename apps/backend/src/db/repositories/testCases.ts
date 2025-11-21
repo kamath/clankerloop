@@ -1,12 +1,11 @@
 import { eq } from 'drizzle-orm';
-
-import { db } from '../index';
 import {
+  db,
   testCases,
   testCaseDescriptions,
   testInputCodes,
   languages,
-} from '../schema';
+} from '@repo/db';
 import { getLanguageId } from './problems';
 
 import type {

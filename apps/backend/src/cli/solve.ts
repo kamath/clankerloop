@@ -1,6 +1,6 @@
 import { readFile } from 'fs/promises';
 
-import { closeConnection } from '../db/index.js';
+import { closeConnection } from '@repo/db';
 import { getProblemPackage } from '../db/repositories/index.js';
 import { createTestRunner } from '../executor/index.js';
 import { formatTestResults, showProgress, showSuccess, showError } from '../utils/index.js';

@@ -11,18 +11,16 @@
     "fmt": "bun run format",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio",
-    "db:seed": "bun run src/db/seed.ts"
+    "db:generate": "bun run --cwd ../../packages/db drizzle-kit generate",
+    "db:migrate": "bun run --cwd ../../packages/db drizzle-kit migrate",
+    "db:push": "bun run --cwd ../../packages/db drizzle-kit push",
+    "db:studio": "bun run --cwd ../../packages/db drizzle-kit studio",
+    "db:seed": "bun run --cwd ../../packages/db src/seed.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "@types/pg": "^8.15.6",
     "@typescript-eslint/eslint-plugin": "^8.13.0",
     "@typescript-eslint/parser": "^8.13.0",
-    "drizzle-kit": "^0.31.7",
     "eslint": "^9.14.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-import-resolver-typescript": "^3.6.3",
@@ -35,11 +33,11 @@
   "dependencies": {
     "@hono/swagger-ui": "^0.5.2",
     "@hono/zod-openapi": "^1.1.5",
+    "@repo/db": "*",
     "ai": "^5.0.95",
     "commander": "^14.0.2",
     "drizzle-orm": "^0.44.7",
     "hono": "^4.10.6",
-    "pg": "^8.16.3",
     "zod": "^4.1.12"
   }
 }

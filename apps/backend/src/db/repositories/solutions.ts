@@ -1,7 +1,5 @@
 import { eq, and } from 'drizzle-orm';
-
-import { db } from '../index';
-import { solutions, languages } from '../schema';
+import { db, solutions, languages } from '@repo/db';
 import { getLanguageId } from './problems';
 
 import type { Solution as AppSolution, Language as AppLanguage } from '../../types/index';

@@ -14,6 +14,13 @@
     "verbatimModuleSyntax": true,
     "noEmit": true,
 
+    // Path mappings for workspace packages
+    "baseUrl": ".",
+    "paths": {
+      "@repo/db": ["../../packages/db/src/index.ts"],
+      "@repo/db/*": ["../../packages/db/src/*"]
+    },
+
     // Best practices
     "strict": true,
     "skipLibCheck": true,
