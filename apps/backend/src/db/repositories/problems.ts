@@ -1,4 +1,3 @@
-import { eq } from 'drizzle-orm';
 import {
   db,
   problems,
@@ -7,6 +6,7 @@ import {
   difficulties,
   testCases,
 } from '@repo/db';
+import { eq } from 'drizzle-orm';
 
 import type {
   Problem as AppProblem,

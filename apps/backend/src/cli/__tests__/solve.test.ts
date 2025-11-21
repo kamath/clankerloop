@@ -2,6 +2,8 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, mock, spyOn } f
 import { readFile } from 'fs/promises';
 import { join } from 'path';
 
+import { solveCommand } from '../solve.js';
+
 import type { ProblemPackage } from '../../types/index.js';
 
 const MOCK_DATA_DIR = join(process.cwd(), 'problem', 'TEST__GOOD_INPUTS');
@@ -22,8 +24,6 @@ mock.module('../../db/repositories/index.js', () => ({
 mock.module('../../db/index.js', () => ({
   closeConnection: () => Promise.resolve(),
 }));
-
-import { solveCommand } from '../solve.js';
 
 beforeAll(async () => {
   // Load mock data from JSON files
