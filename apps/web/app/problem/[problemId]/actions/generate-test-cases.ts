@@ -44,7 +44,7 @@ export async function generateTestCases(problemId: string) {
   await writeFile(
     problemFile,
     JSON.stringify(
-      { problemId, problemText, testCases: object.testCases },
+      { problemId, ...problemText, testCases: object.testCases },
       null,
       2
     )
