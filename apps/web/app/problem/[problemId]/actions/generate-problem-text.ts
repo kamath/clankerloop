@@ -13,6 +13,7 @@ export async function generateProblemText(problemId: string) {
 	DO NOT INCLUDE EXAMPLE INPUTS AND OUTPUTS.
 	DO NOT INCLUDE ANYTHING BUT THE PROBLEM TEXT.
 	Generate a starter scaffold code for the function in TypeScript.
+	THE FUNCTION NAME MUST BE "runSolution"
 	`,
     schema: z.object({
       problemText: z.string(),
@@ -20,7 +21,7 @@ export async function generateProblemText(problemId: string) {
         typescript: z
           .string()
           .describe(
-            "The empty function in TypeScript, ONLY CODE, NO OTHER TEXT"
+            "The empty function in TypeScript, ONLY CODE, NO OTHER TEXT."
           ),
       }),
     }),
