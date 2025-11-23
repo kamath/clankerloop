@@ -14,7 +14,7 @@ import {
 import {
   generateTestCaseInputs,
   getTestCaseInputs,
-} from "./app/problem/[problemId]/actions/run-sandbox-code";
+} from "./app/problem/[problemId]/actions/generate-test-case-inputs";
 import {
   generateSolution,
   getSolution,
