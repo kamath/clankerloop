@@ -1,27 +1,30 @@
 "use server";
 
 import { Sandbox } from "@/lib/sandbox";
-import { getTestCaseInputCode } from "./generate-test-case-input-code";
 import { DEFAULT_LANGUAGE } from "@/lib/consts";
 import { writeFile } from "fs/promises";
 import { join } from "path";
 import { readFile } from "fs/promises";
+import { getSolution } from "./generate-solution";
+import { getTestCases } from "./generate-test-cases";
 
-export async function generateTestCaseInputs(problemId: string) {
-  const testCasesInputCode = await getTestCaseInputCode(problemId);
+export async function generateTestCaseOutputs(problemId: string) {
+  const solution = await getSolution(problemId);
+  const testCaseInputs = await getTestCases(problemId);
   const sandbox = await Sandbox.create(DEFAULT_LANGUAGE);
 
   // Run executions sequentially to avoid conflicts with single-process sandbox
   const results: unknown[] = [];
-  for (const testCaseInputCode of testCasesInputCode) {
+  for (const testCaseInput of testCaseInputs) {
     // TODO: handle errors
-    const result = await sandbox.run(
-      testCaseInputCode.inputCode +
-        "; const output = generateTestInput();" +
+    await sandbox.run(
+      solution +
+        "; const output = runSolution(..." +
+        JSON.stringify(testCaseInput.input) +
+        ");" +
         // Write the output to a file
         "require('fs').writeFileSync('output.json', JSON.stringify(output));"
     );
-    console.log("Result of running sandbox code:", result);
     results.push(JSON.parse(await sandbox.readFile("output.json")));
   }
 
@@ -41,7 +44,7 @@ export async function generateTestCaseInputs(problemId: string) {
       }
       return {
         ...testCase,
-        input: result,
+        expected: result,
       };
     }
   );
@@ -55,9 +58,11 @@ export async function generateTestCaseInputs(problemId: string) {
   return results;
 }
 
-export async function getTestCaseInputs(problemId: string) {
+export async function getTestCaseOutputs(problemId: string) {
   const problemFile = join(process.cwd(), "problems", `${problemId}.json`);
   const problemData = JSON.parse(await readFile(problemFile, "utf8"));
   const { testCases } = problemData;
-  return testCases.map((testCase: Record<string, unknown>) => testCase.result);
+  return testCases.map(
+    (testCase: Record<string, unknown>) => testCase.expected
+  );
 }

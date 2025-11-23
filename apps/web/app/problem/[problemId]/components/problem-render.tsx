@@ -27,6 +27,10 @@ import {
   solutionAtom,
   getSolutionAtom,
   callGenerateSolutionAtom,
+  callGenerateTestCaseOutputsAtom,
+  getTestCaseOutputsAtom,
+  isGenerateTestCaseOutputsLoadingAtom,
+  testCaseOutputsAtom,
 } from "@/atoms";
 
 export default function ProblemRender({ problemId }: { problemId: string }) {
@@ -57,6 +61,14 @@ export default function ProblemRender({ problemId }: { problemId: string }) {
   const solution = useAtomValue(solutionAtom);
   const callGenerateSolution = useSetAtom(callGenerateSolutionAtom);
   const getSolution = useSetAtom(getSolutionAtom);
+  const isGenerateTestCaseOutputsLoading = useAtomValue(
+    isGenerateTestCaseOutputsLoadingAtom
+  );
+  const testCaseOutputs = useAtomValue(testCaseOutputsAtom);
+  const callGenerateTestCaseOutputs = useSetAtom(
+    callGenerateTestCaseOutputsAtom
+  );
+  const getTestCaseOutputs = useSetAtom(getTestCaseOutputsAtom);
 
   useEffect(() => {
     setProblemId(problemId);
@@ -80,7 +92,11 @@ export default function ProblemRender({ problemId }: { problemId: string }) {
 
   useEffect(() => {
     getSolution();
-  }, [getSolution, problemId]);
+  }, [getSolution, problemId, testCaseInputCode]);
+
+  useEffect(() => {
+    getTestCaseOutputs();
+  }, [getTestCaseOutputs, problemId, solution]);
 
   return (
     <div>
@@ -171,6 +187,25 @@ export default function ProblemRender({ problemId }: { problemId: string }) {
           <Loader />
         ) : (
           solution && <MessageResponse>{solution}</MessageResponse>
+        )}
+      </div>
+      <div>
+        <Button
+          variant={"outline"}
+          onClick={() => callGenerateTestCaseOutputs()}
+        >
+          Generate Test Case Outputs
+        </Button>
+        {isGenerateTestCaseOutputsLoading ? (
+          <Loader />
+        ) : (
+          testCaseOutputs && (
+            <div>
+              {testCaseOutputs.map((output, i) => (
+                <div key={`testcase-output-${i}`}>{JSON.stringify(output)}</div>
+              ))}
+            </div>
+          )
         )}
       </div>
     </div>
