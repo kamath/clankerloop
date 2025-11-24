@@ -2,8 +2,16 @@
   "name": "@repo/db",
   "module": "index.ts",
   "type": "module",
+  "scripts": {
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
+  },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/pg": "^8.15.6",
+    "drizzle-kit": "^0.31.7"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
