@@ -10,15 +10,16 @@ export async function generateProblemText(problemId: string) {
 	DO NOT INCLUDE TEST CASES. JUST THE PROBLEM TEXT.
 	DO NOT INCLUDE EXAMPLE INPUTS AND OUTPUTS.
 	DO NOT INCLUDE ANYTHING BUT THE PROBLEM TEXT.
-	Generate a starter scaffold code for the function in TypeScript.
-	THE FUNCTION NAME MUST BE "runSolution"
+	Generate a function signature for the function using TypeScript types.
+	If using custom types, THEY MUST BE DEFINED INLINE -- for example, 
+	(nums: number[], k: number, customType: {something: string; anotherThing: number}): number
 	`,
     schema: z.object({
       problemText: z.string(),
       functionSignature: z
         .string()
         .describe(
-          "The empty function in TypeScript, ONLY CODE, NO OTHER TEXT."
+          "The empty function WITH NO OTHER TEXT in TypeScript types DEFINED INLINE FOR CUSTOM TYPES -- for example, (nums: number[], k: number, customType: {something: string; anotherThing: number}): number"
         ),
     }),
   });
