@@ -28,6 +28,7 @@ Test Cases:
 ${testCases.map((tc: TestCase, i: number) => `${i + 1}. ${tc.description}${tc.isEdgeCase ? " (edge case)" : ""}`).join("\n")}
 
 Generate code that passes all the test cases.
+THE FUNCTION NAME MUST BE runSolution.
 `,
     schema: z.object({
       solution: z
