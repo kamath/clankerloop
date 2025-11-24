@@ -114,7 +114,7 @@ export default function ProblemRender({ problemId }: { problemId: string }) {
             <>
               <MessageResponse>{problemText.problemText}</MessageResponse>
               <MessageResponse>
-                {problemText.functionSignature.typescript}
+                {problemText.functionSignature}
               </MessageResponse>
             </>
           )

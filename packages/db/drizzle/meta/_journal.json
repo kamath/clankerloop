@@ -15,6 +15,13 @@
       "when": 1763973924768,
       "tag": "0001_famous_speed_demon",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1763974162801,
+      "tag": "0002_supreme_maelstrom",
+      "breakpoints": true
     }
   ]
 }
