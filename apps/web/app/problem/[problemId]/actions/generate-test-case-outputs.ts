@@ -8,17 +8,23 @@ import { getProblem, updateTestCase, type TestCase } from "@repo/db";
 
 export async function generateTestCaseOutputs(problemId: string) {
   const solution = await getSolution(problemId);
-  const testCaseInputs = await getTestCases(problemId);
+  // Get existing test cases
+  const { testCases } = await getProblem(problemId);
+  if (!testCases) {
+    throw new Error(
+      "No test cases found. Please generate test case descriptions and inputs first."
+    );
+  }
   const sandbox = await Sandbox.create(DEFAULT_LANGUAGE);
 
   // Run executions sequentially to avoid conflicts with single-process sandbox
   const results: unknown[] = [];
-  for (const testCaseInput of testCaseInputs) {
+  for (const testCase of testCases) {
     // TODO: handle errors
     await sandbox.run(
       solution +
         "; const output = runSolution(..." +
-        JSON.stringify(testCaseInput.input) +
+        JSON.stringify(testCase.input) +
         ");" +
         // Write the output to a file
         "require('fs').writeFileSync('output.json', JSON.stringify(output));"
@@ -28,15 +34,15 @@ export async function generateTestCaseOutputs(problemId: string) {
 
   await sandbox.kill();
 
-  // Get existing test cases
-  const { testCases } = await getProblem(problemId);
-
   // Update each test case with its expected output
   for (let index = 0; index < testCases.length; index++) {
     const testCase = testCases[index];
     const result = results[index];
     if (result === undefined) {
       throw new Error(`Failed to generate result for test case ${index + 1}`);
+    }
+    if (!testCase) {
+      throw new Error(`Test case at index ${index} is undefined`);
     }
     await updateTestCase(testCase.id, { expected: result });
   }
