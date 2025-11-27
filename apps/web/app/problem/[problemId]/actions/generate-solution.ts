@@ -1,14 +1,11 @@
 "use server";
 
-import {
-  generateSolution as _generateSolution,
-  getSolution as _getSolution,
-} from "@repo/problem-actions";
+import { backendGet, backendPost } from "@/lib/backend-client";
 
 export async function generateSolution(problemId: string) {
-  return _generateSolution(problemId);
+  return backendPost<string>(`/problems/${problemId}/solution/generate`);
 }
 
 export async function getSolution(problemId: string) {
-  return _getSolution(problemId);
+  return backendGet<string>(`/problems/${problemId}/solution`);
 }

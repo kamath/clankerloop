@@ -1,23 +1,13 @@
 "use server";
 
-import {
-  generateTestCaseOutputs as _generateTestCaseOutputs,
-  getTestCaseOutputs as _getTestCaseOutputs,
-  type SandboxConfig,
-} from "@repo/problem-actions";
-
-const getSandboxConfig = (): SandboxConfig => {
-  const apiKey = process.env.DAYTONA_API_KEY;
-  if (!apiKey) {
-    throw new Error("DAYTONA_API_KEY environment variable is not set");
-  }
-  return { apiKey };
-};
+import { backendGet, backendPost } from "@/lib/backend-client";
 
 export async function generateTestCaseOutputs(problemId: string) {
-  return _generateTestCaseOutputs(problemId, getSandboxConfig());
+  return backendPost<unknown[]>(
+    `/problems/${problemId}/test-cases/outputs/generate`
+  );
 }
 
 export async function getTestCaseOutputs(problemId: string) {
-  return _getTestCaseOutputs(problemId);
+  return backendGet<unknown[]>(`/problems/${problemId}/test-cases/outputs`);
 }

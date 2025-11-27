@@ -1,14 +1,13 @@
 "use server";
 
-import {
-  generateTestCaseInputCode as _generateTestCaseInputCode,
-  getTestCaseInputCode as _getTestCaseInputCode,
-} from "@repo/problem-actions";
+import { backendGet, backendPost } from "@/lib/backend-client";
 
 export async function generateTestCaseInputCode(problemId: string) {
-  return _generateTestCaseInputCode(problemId);
+  return backendPost<string[]>(
+    `/problems/${problemId}/test-cases/input-code/generate`
+  );
 }
 
 export async function getTestCaseInputCode(problemId: string) {
-  return _getTestCaseInputCode(problemId);
+  return backendGet<string[]>(`/problems/${problemId}/test-cases/input-code`);
 }

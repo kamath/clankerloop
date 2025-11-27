@@ -1,24 +1,25 @@
 "use server";
 
-import {
-  runUserSolution as _runUserSolution,
-  type TestResult,
-  type SandboxConfig,
-} from "@repo/problem-actions";
+import { backendPost } from "@/lib/backend-client";
 
-export type { TestResult };
+export type TestCase = {
+  description: string;
+  isEdgeCase: boolean;
+  expected: unknown;
+};
 
-const getSandboxConfig = (): SandboxConfig => {
-  const apiKey = process.env.DAYTONA_API_KEY;
-  if (!apiKey) {
-    throw new Error("DAYTONA_API_KEY environment variable is not set");
-  }
-  return { apiKey };
+export type TestResult = {
+  testCase: TestCase;
+  status: "pass" | "fail" | "error";
+  actual: unknown | null;
+  error?: string;
 };
 
 export async function runUserSolution(
   problemId: string,
   userCode: string
 ): Promise<TestResult[]> {
-  return _runUserSolution(problemId, userCode, getSandboxConfig());
+  return backendPost<TestResult[]>(`/problems/${problemId}/solution/run`, {
+    code: userCode,
+  });
 }

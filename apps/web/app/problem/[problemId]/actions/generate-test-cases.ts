@@ -1,14 +1,15 @@
 "use server";
 
-import {
-  generateTestCases as _generateTestCases,
-  getTestCases as _getTestCases,
-} from "@repo/problem-actions";
+import { backendGet, backendPost } from "@/lib/backend-client";
 
 export async function generateTestCases(problemId: string) {
-  return _generateTestCases(problemId);
+  return backendPost<{ description: string; isEdgeCase: boolean }[]>(
+    `/problems/${problemId}/test-cases/generate`
+  );
 }
 
 export async function getTestCases(problemId: string) {
-  return _getTestCases(problemId);
+  return backendGet<{ description: string; isEdgeCase: boolean }[]>(
+    `/problems/${problemId}/test-cases`
+  );
 }

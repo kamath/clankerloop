@@ -1,14 +1,15 @@
 "use server";
 
-import {
-  generateProblemText as _generateProblemText,
-  getProblemText as _getProblemText,
-} from "@repo/problem-actions";
+import { backendGet, backendPost } from "@/lib/backend-client";
 
 export async function generateProblemText(problemId: string) {
-  return _generateProblemText(problemId);
+  return backendPost<{ problemText: string; functionSignature: string }>(
+    `/problems/${problemId}/text/generate`
+  );
 }
 
 export async function getProblemText(problemId: string) {
-  return _getProblemText(problemId);
+  return backendGet<{ problemText: string; functionSignature: string }>(
+    `/problems/${problemId}/text`
+  );
 }
