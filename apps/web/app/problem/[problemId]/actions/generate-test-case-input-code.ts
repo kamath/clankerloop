@@ -1,5 +1,3 @@
-"use server";
-
 import { backendGet, backendPost } from "@/lib/backend-client";
 
 export async function generateTestCaseInputCode(problemId: string) {

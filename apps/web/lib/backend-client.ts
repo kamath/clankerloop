@@ -1,7 +1,5 @@
-"use server";
-
 const getBackendUrl = () => {
-  const url = process.env.BACKEND_URL;
+  const url = process.env.NEXT_PUBLIC_BACKEND_URL;
   if (!url) {
     throw new Error("BACKEND_URL environment variable is not set");
   }
@@ -9,7 +7,7 @@ const getBackendUrl = () => {
 };
 
 const getBackendApiKey = () => {
-  const apiKey = process.env.BACKEND_API_KEY;
+  const apiKey = process.env.NEXT_PUBLIC_BACKEND_API_KEY;
   if (!apiKey) {
     throw new Error("BACKEND_API_KEY environment variable is not set");
   }

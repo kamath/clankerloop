@@ -1,5 +1,3 @@
-"use server";
-
 import { backendPost } from "@/lib/backend-client";
 
 export type TestCase = {
