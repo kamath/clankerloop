@@ -2,106 +2,82 @@
 
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { MessageResponse } from "@/components/ai-elements/message";
 import Loader from "@/components/client/loader";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
-  callGenerateProblemTextAtom,
-  callGenerateTestCasesAtom,
-  getCodeToGenerateTestCaseInputsAtom,
-  getProblemTextAtom,
-  getTestCasesAtom,
-  isProblemTextLoadingAtom,
-  isTestCaseInputsLoadingAtom,
-  isTestCasesLoadingAtom,
-  problemIdAtom,
-  problemTextAtom,
-  problemTextErrorAtom,
-  testCaseInputsAtom,
-  testCasesAtom,
-  testCasesErrorAtom,
-  testCaseInputCodeAtom,
-  testCaseInputCodeErrorAtom,
-  callGenerateTestCaseInputsAtom,
-  isGenerateTestCaseInputsLoadingAtom,
-  testCaseInputsErrorAtom,
-  callGenerateTestCaseInputCodeAtom,
-  getTestCaseInputsAtom,
-  isGenerateSolutionLoadingAtom,
-  solutionAtom,
-  solutionErrorAtom,
-  getSolutionAtom,
-  callGenerateSolutionAtom,
-  callGenerateTestCaseOutputsAtom,
-  getTestCaseOutputsAtom,
-  isGenerateTestCaseOutputsLoadingAtom,
-  testCaseOutputsAtom,
-  testCaseOutputsErrorAtom,
-  isRunUserSolutionLoadingAtom,
-  userSolutionTestResultsAtom,
-  userSolutionErrorAtom,
-  callRunUserSolutionAtom,
-  userSolutionAtom,
-} from "@/atoms";
+  useProblemText,
+  useTestCases,
+  useTestCaseInputCode,
+  useTestCaseInputs,
+  useSolution,
+  useTestCaseOutputs,
+  useRunUserSolution,
+} from "@/hooks/use-problem";
 
 export default function ProblemRender({ problemId }: { problemId: string }) {
-  const setProblemId = useSetAtom(problemIdAtom);
-  const isProblemTextLoading = useAtomValue(isProblemTextLoadingAtom);
-  const problemText = useAtomValue(problemTextAtom);
-  const problemTextError = useAtomValue(problemTextErrorAtom);
-  const callGenerateProblemText = useSetAtom(callGenerateProblemTextAtom);
-  const getProblemText = useSetAtom(getProblemTextAtom);
-  const isTestCasesLoading = useAtomValue(isTestCasesLoadingAtom);
-  const testCases = useAtomValue(testCasesAtom);
-  const testCasesError = useAtomValue(testCasesErrorAtom);
-  const callGenerateTestCases = useSetAtom(callGenerateTestCasesAtom);
-  const getTestCases = useSetAtom(getTestCasesAtom);
-  const isTestCaseInputsLoading = useAtomValue(isTestCaseInputsLoadingAtom);
-  const testCaseInputCode = useAtomValue(testCaseInputCodeAtom);
-  const testCaseInputCodeError = useAtomValue(testCaseInputCodeErrorAtom);
-  const callGenerateTestCaseInputCode = useSetAtom(
-    callGenerateTestCaseInputCodeAtom
-  );
-  const getCodeToGenerateTestCaseInputs = useSetAtom(
-    getCodeToGenerateTestCaseInputsAtom
-  );
-  const callGenerateTestCaseInputs = useSetAtom(callGenerateTestCaseInputsAtom);
-  const isGenerateTestCaseInputsLoading = useAtomValue(
-    isGenerateTestCaseInputsLoadingAtom
-  );
-  const testCaseInputs = useAtomValue(testCaseInputsAtom);
-  const testCaseInputsError = useAtomValue(testCaseInputsErrorAtom);
-  const getTestCaseInputs = useSetAtom(getTestCaseInputsAtom);
-  const isGenerateSolutionLoading = useAtomValue(isGenerateSolutionLoadingAtom);
-  const solution = useAtomValue(solutionAtom);
-  const solutionError = useAtomValue(solutionErrorAtom);
-  const callGenerateSolution = useSetAtom(callGenerateSolutionAtom);
-  const getSolution = useSetAtom(getSolutionAtom);
-  const isGenerateTestCaseOutputsLoading = useAtomValue(
-    isGenerateTestCaseOutputsLoadingAtom
-  );
-  const testCaseOutputs = useAtomValue(testCaseOutputsAtom);
-  const testCaseOutputsError = useAtomValue(testCaseOutputsErrorAtom);
-  const callGenerateTestCaseOutputs = useSetAtom(
-    callGenerateTestCaseOutputsAtom
-  );
-  const getTestCaseOutputs = useSetAtom(getTestCaseOutputsAtom);
-  const isRunUserSolutionLoading = useAtomValue(isRunUserSolutionLoadingAtom);
-  const userSolutionError = useAtomValue(userSolutionErrorAtom);
-  const [userSolution, setUserSolution] = useAtom(userSolutionAtom);
-  const userSolutionTestResults = useAtomValue(userSolutionTestResultsAtom);
-  const callRunUserSolution = useSetAtom(callRunUserSolutionAtom);
+  const [userSolution, setUserSolution] = useState<string | null>(null);
 
-  useEffect(() => {
-    setProblemId(problemId);
-  }, [problemId, setProblemId]);
+  const {
+    isLoading: isProblemTextLoading,
+    error: problemTextError,
+    data: problemText,
+    getData: getProblemText,
+    generateData: callGenerateProblemText,
+  } = useProblemText(problemId);
+
+  const {
+    isLoading: isTestCasesLoading,
+    error: testCasesError,
+    data: testCases,
+    getData: getTestCases,
+    generateData: callGenerateTestCases,
+  } = useTestCases(problemId);
+
+  const {
+    isLoading: isTestCaseInputsLoading,
+    error: testCaseInputCodeError,
+    data: testCaseInputCode,
+    getData: getCodeToGenerateTestCaseInputs,
+    generateData: callGenerateTestCaseInputCode,
+  } = useTestCaseInputCode(problemId);
+
+  const {
+    isLoading: isGenerateTestCaseInputsLoading,
+    error: testCaseInputsError,
+    data: testCaseInputs,
+    getData: getTestCaseInputs,
+    generateData: callGenerateTestCaseInputs,
+  } = useTestCaseInputs(problemId);
+
+  const {
+    isLoading: isGenerateSolutionLoading,
+    error: solutionError,
+    data: solution,
+    getData: getSolution,
+    generateData: callGenerateSolution,
+  } = useSolution(problemId);
+
+  const {
+    isLoading: isGenerateTestCaseOutputsLoading,
+    error: testCaseOutputsError,
+    data: testCaseOutputs,
+    getData: getTestCaseOutputs,
+    generateData: callGenerateTestCaseOutputs,
+  } = useTestCaseOutputs(problemId);
+
+  const {
+    isLoading: isRunUserSolutionLoading,
+    error: userSolutionError,
+    data: userSolutionTestResults,
+    runData: callRunUserSolution,
+  } = useRunUserSolution(problemId, userSolution);
 
   useEffect(() => {
     if (solution) {
       setUserSolution(solution);
     }
-  }, [solution, setUserSolution]);
+  }, [solution]);
 
   return (
     <div>
@@ -127,7 +103,11 @@ export default function ProblemRender({ problemId }: { problemId: string }) {
             {problemTextError && (
               <Alert variant="destructive" className="mb-4">
                 <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{problemTextError.message}</AlertDescription>
+                <AlertDescription>
+                  {problemTextError instanceof Error
+                    ? problemTextError.message
+                    : String(problemTextError)}
+                </AlertDescription>
               </Alert>
             )}
             {problemText && (
@@ -155,7 +135,11 @@ export default function ProblemRender({ problemId }: { problemId: string }) {
             {testCasesError && (
               <Alert variant="destructive" className="mb-4">
                 <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{testCasesError.message}</AlertDescription>
+                <AlertDescription>
+                  {testCasesError instanceof Error
+                    ? testCasesError.message
+                    : String(testCasesError)}
+                </AlertDescription>
               </Alert>
             )}
             {testCases && (
@@ -192,7 +176,9 @@ export default function ProblemRender({ problemId }: { problemId: string }) {
               <Alert variant="destructive" className="mb-4">
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>
-                  {testCaseInputCodeError.message}
+                  {testCaseInputCodeError instanceof Error
+                    ? testCaseInputCodeError.message
+                    : String(testCaseInputCodeError)}
                 </AlertDescription>
               </Alert>
             )}
@@ -224,7 +210,9 @@ export default function ProblemRender({ problemId }: { problemId: string }) {
               <Alert variant="destructive" className="mb-4">
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>
-                  {testCaseInputsError.message}
+                  {testCaseInputsError instanceof Error
+                    ? testCaseInputsError.message
+                    : String(testCaseInputsError)}
                 </AlertDescription>
               </Alert>
             )}
@@ -254,7 +242,11 @@ export default function ProblemRender({ problemId }: { problemId: string }) {
             {solutionError && (
               <Alert variant="destructive" className="mb-4">
                 <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{solutionError.message}</AlertDescription>
+                <AlertDescription>
+                  {solutionError instanceof Error
+                    ? solutionError.message
+                    : String(solutionError)}
+                </AlertDescription>
               </Alert>
             )}
             {solution && <MessageResponse>{solution}</MessageResponse>}
@@ -279,7 +271,9 @@ export default function ProblemRender({ problemId }: { problemId: string }) {
               <Alert variant="destructive" className="mb-4">
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>
-                  {testCaseOutputsError.message}
+                  {testCaseOutputsError instanceof Error
+                    ? testCaseOutputsError.message
+                    : String(testCaseOutputsError)}
                 </AlertDescription>
               </Alert>
             )}
@@ -307,7 +301,11 @@ export default function ProblemRender({ problemId }: { problemId: string }) {
           {userSolutionError && (
             <Alert variant="destructive" className="mb-4">
               <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{userSolutionError.message}</AlertDescription>
+              <AlertDescription>
+                {userSolutionError instanceof Error
+                  ? userSolutionError.message
+                  : String(userSolutionError)}
+              </AlertDescription>
             </Alert>
           )}
           {userSolutionTestResults && (
