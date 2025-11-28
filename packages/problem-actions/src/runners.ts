@@ -35,7 +35,7 @@ print(json.dumps(result))
 export const LANGUAGE_CONFIGS: Record<SupportedLanguage, LanguageConfig> = {
   typescript: {
     extension: "ts",
-    runCommand: "npx tsx",
+    runCommand: "bun",
     sandboxLanguage: "javascript",
   },
   javascript: {

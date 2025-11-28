@@ -6,7 +6,6 @@ type SandboxInstance = Awaited<ReturnType<Daytona["create"]>>;
 export interface ExecuteCommandResult {
   exitCode: number;
   stdout: string;
-  stderr: string;
 }
 
 export class Sandbox {
@@ -51,14 +50,15 @@ export class Sandbox {
     cwd?: string,
     timeout?: number
   ): Promise<ExecuteCommandResult> {
-    const result = await this.sandbox.process.executeCommand(command, {
+    const result = await this.sandbox.process.executeCommand(
+      command,
       cwd,
-      timeout,
-    });
+      undefined,
+      timeout
+    );
     return {
       exitCode: result.exitCode,
       stdout: result.result ?? "",
-      stderr: result.stderr ?? "",
     };
   }
 }
