@@ -3,6 +3,11 @@ import type { SandboxConfig } from "./types";
 
 type SandboxInstance = Awaited<ReturnType<Daytona["create"]>>;
 
+export interface ExecuteCommandResult {
+  exitCode: number;
+  stdout: string;
+}
+
 export class Sandbox {
   private sandbox: SandboxInstance;
 
@@ -34,5 +39,26 @@ export class Sandbox {
   async readFile(filename: string) {
     const file = await this.sandbox.fs.downloadFile(filename);
     return file.toString();
+  }
+
+  async uploadFile(content: Buffer, remotePath: string): Promise<void> {
+    await this.sandbox.fs.uploadFile(content, remotePath);
+  }
+
+  async executeCommand(
+    command: string,
+    cwd?: string,
+    timeout?: number
+  ): Promise<ExecuteCommandResult> {
+    const result = await this.sandbox.process.executeCommand(
+      command,
+      cwd,
+      undefined,
+      timeout
+    );
+    return {
+      exitCode: result.exitCode,
+      stdout: result.result ?? "",
+    };
   }
 }

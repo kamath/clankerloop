@@ -1,11 +1,26 @@
 // Types
-export type { TestResult, SandboxConfig, TestCase } from "./src/types";
+export type {
+  TestResult,
+  SandboxConfig,
+  TestCase,
+  SupportedLanguage,
+  LanguageConfig,
+} from "./src/types";
 
 // Constants
 export { DEFAULT_LANGUAGE } from "./src/constants";
 
 // Sandbox
 export { Sandbox } from "./src/sandbox";
+export type { ExecuteCommandResult } from "./src/sandbox";
+
+// Runners
+export {
+  getRunnerTemplate,
+  getLanguageConfig,
+  LANGUAGE_CONFIGS,
+  RUNNER_TEMPLATES,
+} from "./src/runners";
 
 // Problem text
 export {

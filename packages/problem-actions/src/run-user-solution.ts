@@ -1,12 +1,15 @@
 import { Sandbox } from "./sandbox";
-import { DEFAULT_LANGUAGE } from "./constants";
 import { getProblem } from "@repo/db";
-import type { TestResult, SandboxConfig } from "./types";
+import { getLanguageConfig, getRunnerTemplate } from "./runners";
+import type { TestResult, SandboxConfig, SupportedLanguage } from "./types";
+
+const WORK_DIR = "/home/daytona";
 
 export async function runUserSolution(
   problemId: string,
   userCode: string,
-  sandboxConfig: SandboxConfig
+  sandboxConfig: SandboxConfig,
+  language: SupportedLanguage = "javascript"
 ): Promise<TestResult[]> {
   const { testCases } = await getProblem(problemId);
   if (!testCases || testCases.length === 0) {
@@ -32,10 +35,21 @@ export async function runUserSolution(
     }
   }
 
-  const sandbox = await Sandbox.create(DEFAULT_LANGUAGE, sandboxConfig);
+  const config = getLanguageConfig(language);
+  const runnerTemplate = getRunnerTemplate(language);
+
+  const sandbox = await Sandbox.create(config.sandboxLanguage, sandboxConfig);
   const results: TestResult[] = [];
 
+  const solutionPath = `${WORK_DIR}/solution.${config.extension}`;
+  const runnerPath = `${WORK_DIR}/runner.${config.extension}`;
+  const inputPath = `${WORK_DIR}/input.json`;
+
   try {
+    // Upload user solution file
+    await sandbox.uploadFile(Buffer.from(userCode, "utf-8"), solutionPath);
+    // Upload runner file
+    await sandbox.uploadFile(Buffer.from(runnerTemplate, "utf-8"), runnerPath);
     for (let index = 0; index < testCases.length; index++) {
       const testCase = testCases[index];
       if (!testCase) {
@@ -43,20 +57,40 @@ export async function runUserSolution(
       }
 
       try {
-        const codeToRun =
-          userCode +
-          "; const output = runSolution(..." +
-          JSON.stringify(testCase.input) +
-          ");" +
-          "require('fs').writeFileSync('output.json', JSON.stringify(output));";
-
-        await sandbox.run(codeToRun);
-        const actualOutput = JSON.parse(await sandbox.readFile("output.json"));
-
+        // Upload input JSON for this test case
+        const inputJson = JSON.stringify(testCase.input);
+        await sandbox.uploadFile(Buffer.from(inputJson, "utf-8"), inputPath);
+        // Execute the runner
+        const command = `${config.runCommand} runner.${config.extension} input.json`;
+        const result = await sandbox.executeCommand(command, WORK_DIR);
+        if (result.exitCode !== 0) {
+          // Non-zero exit code indicates an error
+          const errorMessage = result.stdout || "Execution failed";
+          results.push({
+            testCase,
+            status: "error",
+            actual: null,
+            error: errorMessage,
+          });
+          continue;
+        }
+        // Parse stdout as JSON for the result
+        const stdout = result.stdout.trim();
+        let actualOutput: unknown;
+        try {
+          actualOutput = JSON.parse(stdout);
+        } catch {
+          results.push({
+            testCase,
+            status: "error",
+            actual: null,
+            error: `Failed to parse output as JSON: ${stdout}`,
+          });
+          continue;
+        }
         const actualStr = JSON.stringify(actualOutput);
         const expectedStr = JSON.stringify(testCase.expected);
         const status = actualStr === expectedStr ? "pass" : "fail";
-
         results.push({
           testCase,
           status,
@@ -74,6 +108,5 @@ export async function runUserSolution(
   } finally {
     await sandbox.kill();
   }
-
   return results;
 }
