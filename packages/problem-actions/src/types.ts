@@ -12,3 +12,11 @@ export type TestResult = {
 export interface SandboxConfig {
   apiKey: string;
 }
+
+export type SupportedLanguage = "typescript" | "javascript" | "python";
+
+export interface LanguageConfig {
+  extension: string;
+  runCommand: string;
+  sandboxLanguage: string;
+}
