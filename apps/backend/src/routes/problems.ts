@@ -1,3 +1,4 @@
+/// <reference path="../../worker-configuration.d.ts" />
 import { Hono } from "hono";
 import {
   generateProblemText,
@@ -16,7 +17,7 @@ import {
   type SandboxConfig,
 } from "@/problem-actions";
 
-const problems = new Hono();
+const problems = new Hono<{ Bindings: Env }>();
 
 const getSandboxConfig = (): SandboxConfig => {
   const apiKey = process.env.DAYTONA_API_KEY;
@@ -118,6 +119,11 @@ problems.post("/:problemId/solution/run", async (c) => {
       400
     );
   }
+
+  const sandbox = getSandbox(c.env.Sandbox, "my-sandbox");
+  const cfResult = await sandbox.exec("bun --version");
+
+  console.log("cfResult", JSON.stringify(cfResult, null, 2));
 
   const result = await runUserSolution(
     problemId,

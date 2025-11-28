@@ -9,7 +9,7 @@ export async function runUserSolution(
   problemId: string,
   userCode: string,
   sandboxConfig: SandboxConfig,
-  language: SupportedLanguage = "javascript"
+  language: SupportedLanguage = "typescript"
 ): Promise<TestResult[]> {
   const { testCases } = await getProblem(problemId);
   if (!testCases || testCases.length === 0) {

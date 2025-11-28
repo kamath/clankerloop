@@ -36,7 +36,7 @@ export const LANGUAGE_CONFIGS: Record<SupportedLanguage, LanguageConfig> = {
   typescript: {
     extension: "ts",
     runCommand: "bun",
-    sandboxLanguage: "javascript",
+    sandboxLanguage: "typescript",
   },
   javascript: {
     extension: "js",

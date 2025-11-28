@@ -1,3 +1,4 @@
+/// <reference path="../worker-configuration.d.ts" />
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
@@ -5,7 +6,7 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { apiKeyAuth } from "./middleware/auth";
 import { problems } from "./routes/problems";
 
-const app = new Hono();
+const app = new Hono<{ Bindings: Env }>();
 
 // Global middleware
 app.use("*", logger());
@@ -73,3 +74,5 @@ app.notFound((c) => {
 export default {
   fetch: app.fetch,
 };
+
+export { Sandbox } from "@cloudflare/sandbox";
