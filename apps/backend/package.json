@@ -10,7 +10,6 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@repo/problem-actions": "*",
     "hono": "^4.7.0"
   },
   "devDependencies": {

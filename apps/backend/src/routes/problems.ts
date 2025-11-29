@@ -14,7 +14,7 @@ import {
   getTestCaseOutputs,
   runUserSolution,
   type SandboxConfig,
-} from "@repo/problem-actions";
+} from "@/problem-actions";
 
 const problems = new Hono();
 
@@ -111,12 +111,19 @@ problems.post("/:problemId/solution/run", async (c) => {
 
   if (!body.code) {
     return c.json(
-      { success: false, error: { code: "VALIDATION_ERROR", message: "code is required" } },
+      {
+        success: false,
+        error: { code: "VALIDATION_ERROR", message: "code is required" },
+      },
       400
     );
   }
 
-  const result = await runUserSolution(problemId, body.code, getSandboxConfig());
+  const result = await runUserSolution(
+    problemId,
+    body.code,
+    getSandboxConfig()
+  );
   return c.json({ success: true, data: result });
 });
 
