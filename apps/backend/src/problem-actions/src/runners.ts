@@ -2,10 +2,9 @@ import type { SupportedLanguage, LanguageConfig } from "./types";
 
 // TypeScript runner template
 export const TS_RUNNER = `
-import { runSolution } from './solution';
 import * as fs from 'fs';
-
-const input = JSON.parse(fs.readFileSync(process.argv[2], 'utf-8'));
+import { runSolution } from './solution';
+const input = JSON.parse(fs.readFileSync(process.argv[process.argv.length - 1], 'utf-8'));
 const result = runSolution(...input);
 console.log(JSON.stringify(result));
 `.trim();
@@ -14,7 +13,6 @@ console.log(JSON.stringify(result));
 export const JS_RUNNER = `
 const { runSolution } = require('./solution');
 const fs = require('fs');
-
 const input = JSON.parse(fs.readFileSync(process.argv[2], 'utf-8'));
 const result = runSolution(...input);
 console.log(JSON.stringify(result));
@@ -35,12 +33,12 @@ print(json.dumps(result))
 export const LANGUAGE_CONFIGS: Record<SupportedLanguage, LanguageConfig> = {
   typescript: {
     extension: "ts",
-    runCommand: "bun",
+    runCommand: "echo '\n\nexport {runSolution}' >> solution.ts && bun",
     sandboxLanguage: "typescript",
   },
   javascript: {
     extension: "js",
-    runCommand: "node",
+    runCommand: "echo '\n\nexport {runSolution}' >> solution.js && node",
     sandboxLanguage: "javascript",
   },
   python: {

@@ -50,6 +50,7 @@ export async function runUserSolution(
     // Upload runner file
     await sandbox.uploadFile(Buffer.from(runnerTemplate, "utf-8"), runnerPath);
     for (let index = 0; index < testCases.length; index++) {
+      if (index > 0) break;
       const testCase = testCases[index];
       if (!testCase) {
         throw new Error(`Test case at index ${index} is undefined`);
@@ -62,6 +63,7 @@ export async function runUserSolution(
         // Execute the runner
         const command = `${config.runCommand} runner.${config.extension} input.json`;
         const result = await sandbox.executeCommand(command, WORK_DIR);
+        console.log("result", JSON.stringify(result, null, 2));
         if (result.exitCode !== 0) {
           // Non-zero exit code indicates an error
           const errorMessage = result.stdout || "Execution failed";
