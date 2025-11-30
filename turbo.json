@@ -6,7 +6,7 @@
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"],
-      "env": ["BRAINTRUST_API_KEY", "NODE_ENV", "DAYTONA_API_KEY", "BACKEND_API_KEY", "DATABASE_URL"]
+      "env": ["BRAINTRUST_API_KEY", "NODE_ENV", "DAYTONA_API_KEY", "BACKEND_API_KEY", "DATABASE_URL", "WORKOS_COOKIE_PASSWORD"]
     },
     "lint": {
       "dependsOn": ["^lint"]
@@ -17,7 +17,7 @@
     "dev": {
       "cache": false,
       "persistent": true,
-      "env": ["BRAINTRUST_API_KEY", "NODE_ENV", "DAYTONA_API_KEY", "BACKEND_API_KEY", "DATABASE_URL"]
+      "env": ["BRAINTRUST_API_KEY", "NODE_ENV", "DAYTONA_API_KEY", "BACKEND_API_KEY", "DATABASE_URL", "WORKOS_COOKIE_PASSWORD"]
     }
   }
 }

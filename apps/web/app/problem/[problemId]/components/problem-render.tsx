@@ -21,8 +21,9 @@ import {
   useRunUserSolution,
 } from "@/hooks/use-problem";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { ClientFacingUserObject } from "@/lib/auth-types";
+import { signOutAction } from "@/app/(auth)/signout";
 
 function getStartingCode(language: string, functionSignature: string) {
   if (language === "typescript") {
@@ -31,7 +32,13 @@ function getStartingCode(language: string, functionSignature: string) {
   throw new Error(`Unsupported language: ${language}`);
 }
 
-export default function ProblemRender({ problemId }: { problemId: string }) {
+export default function ProblemRender({
+  problemId,
+  user,
+}: {
+  problemId: string;
+  user: ClientFacingUserObject;
+}) {
   const [userSolution, setUserSolution] = useState<string | null>(null);
   const [language, _setLanguage] = useState<string>("typescript");
 
@@ -41,7 +48,7 @@ export default function ProblemRender({ problemId }: { problemId: string }) {
     data: problemText,
     getData: getProblemText,
     generateData: callGenerateProblemText,
-  } = useProblemText(problemId);
+  } = useProblemText(problemId, user.apiKey);
 
   useEffect(() => {
     if (!problemText) getProblemText();
@@ -59,7 +66,7 @@ export default function ProblemRender({ problemId }: { problemId: string }) {
     data: testCases,
     getData: getTestCases,
     generateData: callGenerateTestCases,
-  } = useTestCases(problemId);
+  } = useTestCases(problemId, user.apiKey);
 
   const {
     isLoading: isTestCaseInputsLoading,
@@ -67,7 +74,7 @@ export default function ProblemRender({ problemId }: { problemId: string }) {
     data: testCaseInputCode,
     getData: getCodeToGenerateTestCaseInputs,
     generateData: callGenerateTestCaseInputCode,
-  } = useTestCaseInputCode(problemId);
+  } = useTestCaseInputCode(problemId, user.apiKey);
 
   const {
     isLoading: isGenerateTestCaseInputsLoading,
@@ -75,7 +82,7 @@ export default function ProblemRender({ problemId }: { problemId: string }) {
     data: testCaseInputs,
     getData: getTestCaseInputs,
     generateData: callGenerateTestCaseInputs,
-  } = useTestCaseInputs(problemId);
+  } = useTestCaseInputs(problemId, user.apiKey);
 
   const {
     isLoading: isGenerateSolutionLoading,
@@ -83,7 +90,7 @@ export default function ProblemRender({ problemId }: { problemId: string }) {
     data: solution,
     getData: getSolution,
     generateData: callGenerateSolution,
-  } = useSolution(problemId);
+  } = useSolution(problemId, user.apiKey);
 
   const {
     isLoading: isGenerateTestCaseOutputsLoading,
@@ -91,14 +98,14 @@ export default function ProblemRender({ problemId }: { problemId: string }) {
     data: testCaseOutputs,
     getData: getTestCaseOutputs,
     generateData: callGenerateTestCaseOutputs,
-  } = useTestCaseOutputs(problemId);
+  } = useTestCaseOutputs(problemId, user.apiKey);
 
   const {
     isLoading: isRunUserSolutionLoading,
     error: userSolutionError,
     data: userSolutionTestResults,
     runData: callRunUserSolution,
-  } = useRunUserSolution(problemId, userSolution);
+  } = useRunUserSolution(problemId, userSolution, user.apiKey);
 
   useEffect(() => {
     if (solution) {
@@ -119,12 +126,26 @@ export default function ProblemRender({ problemId }: { problemId: string }) {
           <Button variant={"outline"} className="hover:cursor-pointer">
             Problems
           </Button>
-        </Link>
+        </Link>{" "}
+        <form
+          action={async () => {
+            await signOutAction();
+          }}
+        >
+          <Button
+            variant={"outline"}
+            className="hover:cursor-pointer"
+            type="submit"
+          >
+            Sign out
+          </Button>
+        </form>
       </div>
       <ResizablePanelGroup direction="horizontal" className="h-full w-full">
         <ResizablePanel defaultSize={20} className="h-full">
           <div className="h-full overflow-auto p-4 flex flex-col gap-4">
             <div>Problem: {problemId}</div>
+            <div>User: {JSON.stringify(user)}</div>
             <div>
               {!problemText && (
                 <>

@@ -20,9 +20,13 @@ interface BackendResponse<T> {
   error?: { code: string; message: string };
 }
 
-export async function backendGet<T>(path: string): Promise<T> {
+export async function backendGet<T>(
+  path: string,
+  encryptedUserId?: string
+): Promise<T> {
+  const apiKey = encryptedUserId || getBackendApiKey();
   const res = await fetch(`${getBackendUrl()}/api/v1${path}`, {
-    headers: { "X-API-Key": getBackendApiKey() },
+    headers: { "X-API-Key": apiKey },
   });
   const json: BackendResponse<T> = await res.json();
   if (!json.success) {
@@ -31,11 +35,16 @@ export async function backendGet<T>(path: string): Promise<T> {
   return json.data as T;
 }
 
-export async function backendPost<T>(path: string, body?: object): Promise<T> {
+export async function backendPost<T>(
+  path: string,
+  body?: object,
+  encryptedUserId?: string
+): Promise<T> {
+  const apiKey = encryptedUserId || getBackendApiKey();
   const res = await fetch(`${getBackendUrl()}/api/v1${path}`, {
     method: "POST",
     headers: {
-      "X-API-Key": getBackendApiKey(),
+      "X-API-Key": apiKey,
       "Content-Type": "application/json",
     },
     body: body ? JSON.stringify(body) : undefined,

@@ -1,14 +1,9 @@
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
+import { decryptUserId } from "@/utils/auth";
 
 export const apiKeyAuth = createMiddleware(async (c, next) => {
   const apiKey = c.req.header("X-API-Key");
-  const validApiKey = process.env.BACKEND_API_KEY;
-
-  if (!validApiKey) {
-    console.error("BACKEND_API_KEY environment variable is not set");
-    throw new HTTPException(500, { message: "Server configuration error" });
-  }
 
   if (!apiKey) {
     throw new HTTPException(401, {
@@ -16,8 +11,14 @@ export const apiKeyAuth = createMiddleware(async (c, next) => {
     });
   }
 
-  if (apiKey !== validApiKey) {
-    throw new HTTPException(403, { message: "Invalid API key" });
+  try {
+    const decryptedUserId = await decryptUserId(apiKey);
+    console.log("Decrypted user ID:", decryptedUserId);
+  } catch (error) {
+    console.error("Failed to decrypt user ID:", error);
+    throw new HTTPException(403, {
+      message: "Invalid API key. Decryption failed.",
+    });
   }
 
   await next();

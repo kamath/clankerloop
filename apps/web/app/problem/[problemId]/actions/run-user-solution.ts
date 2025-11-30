@@ -16,9 +16,14 @@ export type TestResult = {
 
 export async function runUserSolution(
   problemId: string,
-  userCode: string
+  userCode: string,
+  encryptedUserId?: string
 ): Promise<TestResult[]> {
-  return backendPost<TestResult[]>(`/problems/${problemId}/solution/run`, {
-    code: userCode,
-  });
+  return backendPost<TestResult[]>(
+    `/problems/${problemId}/solution/run`,
+    {
+      code: userCode,
+    },
+    encryptedUserId
+  );
 }
