@@ -21,8 +21,8 @@ import {
   useRunUserSolution,
 } from "@/hooks/use-problem";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { ClientFacingUserObject } from "@/lib/auth-types";
 
 function getStartingCode(language: string, functionSignature: string) {
   if (language === "typescript") {
@@ -31,7 +31,13 @@ function getStartingCode(language: string, functionSignature: string) {
   throw new Error(`Unsupported language: ${language}`);
 }
 
-export default function ProblemRender({ problemId }: { problemId: string }) {
+export default function ProblemRender({
+  problemId,
+  user,
+}: {
+  problemId: string;
+  user: ClientFacingUserObject;
+}) {
   const [userSolution, setUserSolution] = useState<string | null>(null);
   const [language, _setLanguage] = useState<string>("typescript");
 
@@ -125,6 +131,7 @@ export default function ProblemRender({ problemId }: { problemId: string }) {
         <ResizablePanel defaultSize={20} className="h-full">
           <div className="h-full overflow-auto p-4 flex flex-col gap-4">
             <div>Problem: {problemId}</div>
+            <div>User: {JSON.stringify(user)}</div>
             <div>
               {!problemText && (
                 <>
