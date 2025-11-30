@@ -122,21 +122,43 @@ except Exception as e:
     # Exit with code 0 so main code can read output.json and handle the error
 `.trim();
 
+/**
+ * Prepares TypeScript/JavaScript code by ensuring it exports runSolution
+ */
+function prepareJSCode(userCode: string): string {
+  const code = userCode.trim();
+  const exportPattern = /export\s*\{\s*runSolution\s*\}/;
+  if (!exportPattern.test(code)) {
+    return `${code}\n\nexport {runSolution}`;
+  }
+  return code;
+}
+
+/**
+ * Prepares Python code (no changes needed - Python doesn't use exports)
+ */
+function preparePythonCode(userCode: string): string {
+  return userCode.trim();
+}
+
 export const LANGUAGE_CONFIGS: Record<SupportedLanguage, LanguageConfig> = {
   typescript: {
     extension: "ts",
-    runCommand: "echo '\n\nexport {runSolution}' >> solution.ts && bun",
+    runCommand: "bun",
     sandboxLanguage: "typescript",
+    prepareCode: prepareJSCode,
   },
   javascript: {
     extension: "js",
-    runCommand: "echo '\n\nexport {runSolution}' >> solution.js && node",
+    runCommand: "node",
     sandboxLanguage: "javascript",
+    prepareCode: prepareJSCode,
   },
   python: {
     extension: "py",
     runCommand: "python3",
     sandboxLanguage: "python",
+    prepareCode: preparePythonCode,
   },
 };
 

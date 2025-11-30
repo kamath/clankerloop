@@ -44,9 +44,12 @@ export async function runUserSolution(
   const runnerPath = `${WORK_DIR}/runner.${config.extension}`;
   const inputPath = `${WORK_DIR}/input.json`;
 
+  // Prepare code using language-specific preparation function
+  const preparedCode = config.prepareCode(userCode);
+
   try {
     // Upload user solution file
-    await sandbox.uploadFile(Buffer.from(userCode, "utf-8"), solutionPath);
+    await sandbox.uploadFile(Buffer.from(preparedCode, "utf-8"), solutionPath);
     // Upload runner file
     await sandbox.uploadFile(Buffer.from(runnerTemplate, "utf-8"), runnerPath);
     for (let index = 0; index < testCases.length; index++) {
@@ -120,7 +123,7 @@ export async function runUserSolution(
         }
 
         // Handle success (success === true)
-        if (outputData.success === true && outputData.result !== undefined) {
+        if (outputData.success === true) {
           const actualStr = JSON.stringify(outputData.result);
           const expectedStr = JSON.stringify(testCase.expected);
           const status = actualStr === expectedStr ? "pass" : "fail";
@@ -132,6 +135,11 @@ export async function runUserSolution(
           });
           continue;
         }
+
+        console.warn(
+          "Unexpected output format",
+          JSON.stringify(outputData, null, 2)
+        );
 
         // Unexpected output format
         results.push({

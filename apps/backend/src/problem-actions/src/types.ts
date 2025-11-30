@@ -20,4 +20,11 @@ export interface LanguageConfig {
   extension: string;
   runCommand: string;
   sandboxLanguage: string;
+  /**
+   * Prepares user code for execution by adding necessary exports/declarations.
+   * This function should be idempotent - calling it multiple times should not cause issues.
+   * @param userCode - The raw user code
+   * @returns The prepared code ready for execution
+   */
+  prepareCode: (userCode: string) => string;
 }
