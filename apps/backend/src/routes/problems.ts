@@ -17,6 +17,7 @@ import {
 } from "@/problem-actions";
 import { getSandbox } from "@cloudflare/sandbox";
 import { Sandbox } from "@/problem-actions";
+import { createProblem } from "@repo/db";
 
 const problems = new Hono<{ Bindings: Env }>();
 
@@ -24,6 +25,13 @@ const getSandboxInstance = (env: Env, sandboxId: string): Sandbox => {
   const cloudflareSandbox = getSandbox(env.Sandbox, sandboxId);
   return new Sandbox(cloudflareSandbox);
 };
+
+// Create problem with generated text
+problems.post("/", async (c) => {
+  const problemId = await createProblem();
+  const result = await generateProblemText(problemId);
+  return c.json({ success: true, data: { problemId, ...result } });
+});
 
 // Problem text
 problems.post("/:problemId/text/generate", async (c) => {
