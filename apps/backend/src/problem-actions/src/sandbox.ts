@@ -67,7 +67,7 @@ export class Sandbox {
   async executeCommand(
     command: string,
     cwd?: string,
-    timeout?: number,
+    _timeout?: number,
   ): Promise<ExecuteCommandResult> {
     // Build command with cwd if specified
     const fullCommand = cwd ? `cd ${cwd} && ${command}` : command;

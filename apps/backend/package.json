@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "start": "bun run src/index.ts",
-    "lint": "eslint . --max-warnings 0",
+    "lint": "eslint . --max-warnings 0 --fix",
     "check-types": "tsc --noEmit"
   },
   "exports": {

@@ -9,7 +9,8 @@
       "env": ["BRAINTRUST_API_KEY", "NODE_ENV", "DAYTONA_API_KEY", "BACKEND_API_KEY", "DATABASE_URL", "WORKOS_COOKIE_PASSWORD"]
     },
     "lint": {
-      "dependsOn": ["^lint"]
+      "dependsOn": ["^lint"],
+      "env": ["CORS_ORIGIN"]
     },
     "check-types": {
       "dependsOn": ["^check-types"]

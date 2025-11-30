@@ -1,4 +1,3 @@
-/// <reference path="../../worker-configuration.d.ts" />
 import type { MessageBatch } from "@cloudflare/workers-types";
 import { getSandbox } from "@cloudflare/sandbox";
 import {

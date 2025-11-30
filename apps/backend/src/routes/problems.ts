@@ -1,4 +1,3 @@
-/// <reference path="../../worker-configuration.d.ts" />
 import { OpenAPIHono } from "@hono/zod-openapi";
 import type { Context } from "hono";
 import {
@@ -63,7 +62,7 @@ const getSandboxInstance = (env: Env, sandboxId: string): Sandbox => {
 
 // Helper to get or create model
 async function getOrCreateModel(modelName: string): Promise<string> {
-  let model = await getModelByName(modelName);
+  const model = await getModelByName(modelName);
   if (!model) {
     const modelId = await createModel(modelName);
     return modelId;
@@ -153,7 +152,7 @@ problems.openapi(createModelRoute, async (c) => {
     await createModel(body.name);
     const model = await getModelByName(body.name);
     return c.json({ success: true as const, data: model! }, 200);
-  } catch (error) {
+  } catch {
     return c.json(
       {
         success: false as const,
@@ -444,8 +443,8 @@ problems.openapi(getGenerationStatusRoute, async (c) => {
       data: {
         jobId: job.id,
         status: job.status,
-        currentStep: job.currentStep as any,
-        completedSteps: job.completedSteps as any,
+        currentStep: job.currentStep as GenerationStep | null,
+        completedSteps: job.completedSteps as GenerationStep[],
         progress: {
           completed: completedCount,
           total: totalSteps,
