@@ -260,8 +260,28 @@ problems.openapi(generateTestCasesRoute, async (c) => {
   const { problemId } = c.req.valid("param");
   const body = c.req.valid("json");
 
-  // Update problem with model if not set
+  // Validate prerequisite: problem text must exist
   const problem = await getProblem(problemId);
+  if (
+    !problem.problemText ||
+    !problem.functionSignature ||
+    problem.problemText.trim() === "" ||
+    problem.functionSignature.trim() === ""
+  ) {
+    return c.json(
+      {
+        success: false as const,
+        error: {
+          code: "PREREQUISITE_ERROR",
+          message:
+            "Problem text must be generated before test cases can be created",
+        },
+      },
+      400,
+    );
+  }
+
+  // Update problem with model if not set
   if (!problem.generatedByModelId) {
     const modelId = await getOrCreateModel(body.model);
     await updateProblem(problemId, { generatedByModelId: modelId });
@@ -292,6 +312,28 @@ problems.openapi(generateTestCasesRoute, async (c) => {
 
 problems.openapi(getTestCasesRoute, async (c) => {
   const { problemId } = c.req.valid("param");
+
+  // Validate prerequisite: problem text must exist
+  const problem = await getProblem(problemId);
+  if (
+    !problem.problemText ||
+    !problem.functionSignature ||
+    problem.problemText.trim() === "" ||
+    problem.functionSignature.trim() === ""
+  ) {
+    return c.json(
+      {
+        success: false as const,
+        error: {
+          code: "PREREQUISITE_ERROR",
+          message:
+            "Problem text must be generated before test cases can be retrieved",
+        },
+      },
+      400,
+    );
+  }
+
   const result = await getTestCases(problemId);
   return c.json({ success: true as const, data: result }, 200);
 });
@@ -302,8 +344,23 @@ problems.openapi(generateInputCodeRoute, async (c) => {
   const { problemId } = c.req.valid("param");
   const body = c.req.valid("json");
 
-  // Update problem with model if not set
+  // Validate prerequisite: test cases must exist
   const problem = await getProblem(problemId);
+  if (!problem.testCases || problem.testCases.length === 0) {
+    return c.json(
+      {
+        success: false as const,
+        error: {
+          code: "PREREQUISITE_ERROR",
+          message:
+            "Test case descriptions must be generated before input code can be created",
+        },
+      },
+      400,
+    );
+  }
+
+  // Update problem with model if not set
   if (!problem.generatedByModelId) {
     const modelId = await getOrCreateModel(body.model);
     await updateProblem(problemId, { generatedByModelId: modelId });
@@ -334,6 +391,23 @@ problems.openapi(generateInputCodeRoute, async (c) => {
 
 problems.openapi(getInputCodeRoute, async (c) => {
   const { problemId } = c.req.valid("param");
+
+  // Validate prerequisite: test cases must exist
+  const problem = await getProblem(problemId);
+  if (!problem.testCases || problem.testCases.length === 0) {
+    return c.json(
+      {
+        success: false as const,
+        error: {
+          code: "PREREQUISITE_ERROR",
+          message:
+            "Test case descriptions must be generated before input code can be retrieved",
+        },
+      },
+      400,
+    );
+  }
+
   const result = await getTestCaseInputCode(problemId);
   return c.json({ success: true as const, data: result }, 200);
 });
@@ -343,6 +417,26 @@ problems.openapi(getInputCodeRoute, async (c) => {
 problems.openapi(generateInputsRoute, async (c) => {
   const { problemId } = c.req.valid("param");
   const body = c.req.valid("json");
+
+  // Validate prerequisite: all test cases must have inputCode
+  const problem = await getProblem(problemId);
+  if (
+    !problem.testCases ||
+    problem.testCases.length === 0 ||
+    !problem.testCases.every((tc) => tc.inputCode && tc.inputCode.trim() !== "")
+  ) {
+    return c.json(
+      {
+        success: false as const,
+        error: {
+          code: "PREREQUISITE_ERROR",
+          message:
+            "Test case input code must be generated before test inputs can be created",
+        },
+      },
+      400,
+    );
+  }
 
   const sandboxId = `test-inputs-${problemId}`;
   const sandbox = getSandboxInstance(c.env, sandboxId);
@@ -365,6 +459,27 @@ problems.openapi(generateInputsRoute, async (c) => {
 
 problems.openapi(getInputsRoute, async (c) => {
   const { problemId } = c.req.valid("param");
+
+  // Validate prerequisite: all test cases must have inputCode
+  const problem = await getProblem(problemId);
+  if (
+    !problem.testCases ||
+    problem.testCases.length === 0 ||
+    !problem.testCases.every((tc) => tc.inputCode && tc.inputCode.trim() !== "")
+  ) {
+    return c.json(
+      {
+        success: false as const,
+        error: {
+          code: "PREREQUISITE_ERROR",
+          message:
+            "Test case input code must be generated before test inputs can be retrieved",
+        },
+      },
+      400,
+    );
+  }
+
   const result = await getTestCaseInputs(problemId);
   return c.json({ success: true as const, data: result }, 200);
 });
@@ -375,8 +490,29 @@ problems.openapi(generateSolutionRoute, async (c) => {
   const { problemId } = c.req.valid("param");
   const body = c.req.valid("json");
 
-  // Update problem with model if not set
+  // Validate prerequisite: all test cases must have input field populated
   const problem = await getProblem(problemId);
+  if (
+    !problem.testCases ||
+    problem.testCases.length === 0 ||
+    !problem.testCases.every(
+      (tc) => tc.input !== null && tc.input !== undefined,
+    )
+  ) {
+    return c.json(
+      {
+        success: false as const,
+        error: {
+          code: "PREREQUISITE_ERROR",
+          message:
+            "Test case inputs must be generated before solution can be created",
+        },
+      },
+      400,
+    );
+  }
+
+  // Update problem with model if not set
   if (!problem.generatedByModelId) {
     const modelId = await getOrCreateModel(body.model);
     await updateProblem(problemId, { generatedByModelId: modelId });
@@ -409,6 +545,29 @@ problems.openapi(generateSolutionRoute, async (c) => {
 
 problems.openapi(getSolutionRoute, async (c) => {
   const { problemId } = c.req.valid("param");
+
+  // Validate prerequisite: all test cases must have input field populated
+  const problem = await getProblem(problemId);
+  if (
+    !problem.testCases ||
+    problem.testCases.length === 0 ||
+    !problem.testCases.every(
+      (tc) => tc.input !== null && tc.input !== undefined,
+    )
+  ) {
+    return c.json(
+      {
+        success: false as const,
+        error: {
+          code: "PREREQUISITE_ERROR",
+          message:
+            "Test case inputs must be generated before solution can be retrieved",
+        },
+      },
+      400,
+    );
+  }
+
   const result = await getSolution(problemId);
   return c.json({ success: true as const, data: { solution: result } }, 200);
 });
@@ -428,6 +587,22 @@ problems.openapi(runSolutionRoute, async (c) => {
 problems.openapi(generateOutputsRoute, async (c) => {
   const { problemId } = c.req.valid("param");
   const body = c.req.valid("json");
+
+  // Validate prerequisite: solution must exist
+  const problem = await getProblem(problemId);
+  if (!problem.solution || problem.solution.trim() === "") {
+    return c.json(
+      {
+        success: false as const,
+        error: {
+          code: "PREREQUISITE_ERROR",
+          message:
+            "Solution must be generated before test outputs can be created",
+        },
+      },
+      400,
+    );
+  }
 
   const sandboxId = `test-outputs-${problemId}`;
   const sandbox = getSandboxInstance(c.env, sandboxId);
@@ -450,6 +625,23 @@ problems.openapi(generateOutputsRoute, async (c) => {
 
 problems.openapi(getOutputsRoute, async (c) => {
   const { problemId } = c.req.valid("param");
+
+  // Validate prerequisite: solution must exist
+  const problem = await getProblem(problemId);
+  if (!problem.solution || problem.solution.trim() === "") {
+    return c.json(
+      {
+        success: false as const,
+        error: {
+          code: "PREREQUISITE_ERROR",
+          message:
+            "Solution must be generated before test outputs can be retrieved",
+        },
+      },
+      400,
+    );
+  }
+
   const result = await getTestCaseOutputs(problemId);
   return c.json({ success: true as const, data: result }, 200);
 });

@@ -67,9 +67,14 @@ export function useProblemText(
     },
   });
 
-  const getData = () => {
+  const getData = async () => {
     if (!problemId) return Promise.reject(new Error("Problem ID is not set"));
-    return query.refetch();
+    try {
+      return await query.refetch();
+    } catch (error) {
+      // Error is automatically set in query.error by React Query
+      throw error;
+    }
   };
 
   const generateData = async (
@@ -135,9 +140,14 @@ export function useTestCases(
     },
   });
 
-  const getData = () => {
+  const getData = async () => {
     if (!problemId) return Promise.reject(new Error("Problem ID is not set"));
-    return query.refetch();
+    try {
+      return await query.refetch();
+    } catch (error) {
+      // Error is automatically set in query.error by React Query
+      throw error;
+    }
   };
 
   const generateData = async (
@@ -203,9 +213,14 @@ export function useTestCaseInputCode(
     },
   });
 
-  const getData = () => {
+  const getData = async () => {
     if (!problemId) return Promise.reject(new Error("Problem ID is not set"));
-    return query.refetch();
+    try {
+      return await query.refetch();
+    } catch (error) {
+      // Error is automatically set in query.error by React Query
+      throw error;
+    }
   };
 
   const generateData = async (
@@ -265,9 +280,14 @@ export function useTestCaseInputs(
     },
   });
 
-  const getData = () => {
+  const getData = async () => {
     if (!problemId) return Promise.reject(new Error("Problem ID is not set"));
-    return query.refetch();
+    try {
+      return await query.refetch();
+    } catch (error) {
+      // Error is automatically set in query.error by React Query
+      throw error;
+    }
   };
 
   const generateData = async (enqueueNextStep?: boolean) => {
@@ -330,9 +350,14 @@ export function useSolution(
     },
   });
 
-  const getData = () => {
+  const getData = async () => {
     if (!problemId) return Promise.reject(new Error("Problem ID is not set"));
-    return query.refetch();
+    try {
+      return await query.refetch();
+    } catch (error) {
+      // Error is automatically set in query.error by React Query
+      throw error;
+    }
   };
 
   const generateData = async (
@@ -447,9 +472,14 @@ export function useTestCaseOutputs(
     },
   });
 
-  const getData = () => {
+  const getData = async () => {
     if (!problemId) return Promise.reject(new Error("Problem ID is not set"));
-    return query.refetch();
+    try {
+      return await query.refetch();
+    } catch (error) {
+      // Error is automatically set in query.error by React Query
+      throw error;
+    }
   };
 
   const generateData = async (enqueueNextStep?: boolean) => {

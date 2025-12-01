@@ -242,6 +242,10 @@ export const getTestCasesRoute = createRoute({
       },
       description: "Test cases retrieved",
     },
+    400: {
+      content: { "application/json": { schema: ApiErrorSchema } },
+      description: "Validation error",
+    },
   },
   security: [{ ApiKeyAuth: [] }],
 });
@@ -298,6 +302,10 @@ export const getInputCodeRoute = createRoute({
       },
       description: "Input code retrieved",
     },
+    400: {
+      content: { "application/json": { schema: ApiErrorSchema } },
+      description: "Validation error",
+    },
   },
   security: [{ ApiKeyAuth: [] }],
 });
@@ -328,6 +336,10 @@ export const generateInputsRoute = createRoute({
       },
       description: "Test inputs generated successfully",
     },
+    400: {
+      content: { "application/json": { schema: ApiErrorSchema } },
+      description: "Validation error",
+    },
   },
   security: [{ ApiKeyAuth: [] }],
 });
@@ -349,6 +361,10 @@ export const getInputsRoute = createRoute({
         },
       },
       description: "Test inputs retrieved",
+    },
+    400: {
+      content: { "application/json": { schema: ApiErrorSchema } },
+      description: "Validation error",
     },
   },
   security: [{ ApiKeyAuth: [] }],
@@ -405,6 +421,10 @@ export const getSolutionRoute = createRoute({
         },
       },
       description: "Solution retrieved",
+    },
+    400: {
+      content: { "application/json": { schema: ApiErrorSchema } },
+      description: "Validation error",
     },
   },
   security: [{ ApiKeyAuth: [] }],
@@ -468,6 +488,10 @@ export const generateOutputsRoute = createRoute({
       },
       description: "Test outputs generated successfully",
     },
+    400: {
+      content: { "application/json": { schema: ApiErrorSchema } },
+      description: "Validation error",
+    },
   },
   security: [{ ApiKeyAuth: [] }],
 });
@@ -489,6 +513,10 @@ export const getOutputsRoute = createRoute({
         },
       },
       description: "Test outputs retrieved",
+    },
+    400: {
+      content: { "application/json": { schema: ApiErrorSchema } },
+      description: "Validation error",
     },
   },
   security: [{ ApiKeyAuth: [] }],

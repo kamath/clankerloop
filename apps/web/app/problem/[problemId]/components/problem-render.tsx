@@ -279,7 +279,9 @@ export default function ProblemRender({
                 id="auto-enqueue"
                 checked={autoEnqueue}
                 onCheckedChange={(checked) =>
-                  setAutoEnqueue(checked === true || checked === "indeterminate")
+                  setAutoEnqueue(
+                    checked === true || checked === "indeterminate",
+                  )
                 }
               />
               <Label
@@ -314,7 +316,8 @@ export default function ProblemRender({
                     }
                     disabled={!selectedModel}
                   >
-                    {problemText ? "Re-generate" : "Generate"} Problem Text (force error)
+                    {problemText ? "Re-generate" : "Generate"} Problem Text
+                    (force error)
                   </Button>
                   <Button variant={"outline"} onClick={() => getProblemText()}>
                     Re-fetch Problem Text
@@ -426,7 +429,7 @@ export default function ProblemRender({
                       callGenerateTestCaseInputCode(
                         selectedModel,
                         false,
-                        autoEnqueue
+                        autoEnqueue,
                       )
                     }
                     disabled={!selectedModel}
@@ -440,7 +443,7 @@ export default function ProblemRender({
                       callGenerateTestCaseInputCode(
                         selectedModel,
                         true,
-                        autoEnqueue
+                        autoEnqueue,
                       )
                     }
                     disabled={!selectedModel}
@@ -541,7 +544,7 @@ export default function ProblemRender({
                         selectedModel,
                         undefined,
                         autoEnqueue,
-                        false
+                        false,
                       )
                     }
                   >
@@ -554,11 +557,12 @@ export default function ProblemRender({
                         selectedModel,
                         undefined,
                         autoEnqueue,
-                        true
+                        true,
                       )
                     }
                   >
-                    {solution ? "Re-generate" : "Generate"} Solution (force error)
+                    {solution ? "Re-generate" : "Generate"} Solution (force
+                    error)
                   </Button>
                   <Button variant={"outline"} onClick={() => getSolution()}>
                     Re-fetch Solution
@@ -702,7 +706,7 @@ export default function ProblemRender({
                           selectedModel,
                           false,
                           autoEnqueue,
-                          false
+                          false,
                         );
                       if (generatedSolution) {
                         setUserSolution(generatedSolution);
@@ -732,7 +736,7 @@ export default function ProblemRender({
                           selectedModel,
                           false,
                           autoEnqueue,
-                          true
+                          true,
                         );
                       if (generatedSolution) {
                         setUserSolution(generatedSolution);
