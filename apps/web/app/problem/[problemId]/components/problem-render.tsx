@@ -4,7 +4,7 @@ import Editor from "@monaco-editor/react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { MessageResponse } from "@/components/ai-elements/message";
 import Loader from "@/components/client/loader";
 import {
@@ -38,6 +38,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import {
+  CheckCircle2Icon,
+  Loader2Icon,
+  XCircleIcon,
+  ClockIcon,
+  ChevronDownIcon,
+} from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import type { GenerationStep } from "@/hooks/use-problem";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+
+// Step order matching backend STEP_ORDER
+const STEP_ORDER: GenerationStep[] = [
+  "generateProblemText",
+  "generateTestCases",
+  "generateTestCaseInputCode",
+  "generateTestCaseInputs",
+  "generateSolution",
+  "generateTestCaseOutputs",
+];
+
+type StepStatus = "loading" | "complete" | "error" | "pending" | "not_started";
 
 function getStartingCode(language: string, functionSignature: string) {
   if (language === "typescript") {
@@ -53,12 +80,15 @@ export default function ProblemRender({
   problemId: string;
   user: ClientFacingUserObject;
 }) {
+  const queryClient = useQueryClient();
   const [userSolution, setUserSolution] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [language, _setLanguage] = useState<string>("typescript");
   const [selectedModel, setSelectedModel] = useState<string>("");
   const [autoEnqueue, setAutoEnqueue] = useState<boolean>(false);
   const [returnDummy, setReturnDummy] = useState<boolean>(false);
+  const [lastValidStepIndex, setLastValidStepIndex] = useState<number>(-1);
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
 
   const {
     isLoading: isProblemTextLoading,
@@ -142,10 +172,91 @@ export default function ProblemRender({
     completedSteps,
     currentStep,
     isGenerating,
-    isComplete,
     isFailed,
     error: generationError,
   } = useGenerationStatus(problemId, user.apiKey);
+
+  // Helper function to get step status
+  const getStepStatus = (
+    step: GenerationStep,
+    isLoading: boolean,
+    error: unknown,
+    hasData: boolean
+  ): StepStatus => {
+    if (error) return "error";
+    // If step is currently being generated, show "pending" instead of "loading"
+    // This prevents oscillation between pending and loading during polling
+    if (isGenerating && currentStep && currentStep === step) return "pending";
+    if (isLoading) return "loading";
+    if (hasData || completedSteps.includes(step)) return "complete";
+    return "not_started";
+  };
+
+  // Helper function to determine if step should be visible
+  const shouldShowStep = (
+    step: GenerationStep,
+    stepIndex: number,
+    isLoading: boolean,
+    error: unknown,
+    hasData: boolean
+  ): boolean => {
+    const stepStatus = getStepStatus(step, isLoading, error, hasData);
+
+    // Always show if complete, error, or loading
+    if (
+      stepStatus === "complete" ||
+      stepStatus === "error" ||
+      stepStatus === "loading"
+    ) {
+      return true;
+    }
+
+    // Show if it's the immediate next step after lastValidStepIndex
+    if (stepIndex === lastValidStepIndex + 1) {
+      return true;
+    }
+
+    // Don't show future steps
+    if (stepIndex > lastValidStepIndex + 1) {
+      return false;
+    }
+
+    return false;
+  };
+
+  // Update lastValidStepIndex based on completed steps
+  useEffect(() => {
+    let highestIndex = -1;
+    for (let i = 0; i < STEP_ORDER.length; i++) {
+      const step = STEP_ORDER[i];
+      if (step && completedSteps.includes(step)) {
+        highestIndex = i;
+      }
+    }
+    if (highestIndex > lastValidStepIndex) {
+      setLastValidStepIndex(highestIndex);
+    }
+  }, [completedSteps, lastValidStepIndex]);
+
+  // Helper to invalidate subsequent steps when regenerating
+  const invalidateSubsequentSteps = (stepIndex: number) => {
+    const queryKeys: Record<GenerationStep, string[]> = {
+      generateProblemText: ["problemText", problemId],
+      generateTestCases: ["testCases", problemId],
+      generateTestCaseInputCode: ["testCaseInputCode", problemId],
+      generateTestCaseInputs: ["testCaseInputs", problemId],
+      generateSolution: ["solution", problemId],
+      generateTestCaseOutputs: ["testCaseOutputs", problemId],
+    };
+
+    for (let i = stepIndex + 1; i < STEP_ORDER.length; i++) {
+      const step = STEP_ORDER[i];
+      if (step) {
+        queryClient.removeQueries({ queryKey: queryKeys[step] });
+      }
+    }
+    setLastValidStepIndex(stepIndex);
+  };
 
   // Set default model: use problem model if available, otherwise use first model from list
   useEffect(() => {
@@ -210,24 +321,279 @@ export default function ProblemRender({
     }
   }, [completedSteps, testCaseOutputs, getTestCaseOutputs]);
 
-  // Helper to determine if buttons should be shown for a specific step
-  const shouldShowButtonsForStep = (step: string) => {
-    // Show buttons when not generating, complete, failed, OR when there's an error at any step
-    const generalCondition =
-      !isGenerating ||
-      isComplete ||
-      isFailed ||
-      problemTextError ||
-      testCasesError ||
-      testCaseInputCodeError ||
-      testCaseInputsError ||
-      solutionError ||
-      testCaseOutputsError;
+  // Helper function to get step display name
+  const getStepDisplayName = (step: GenerationStep): string => {
+    const names: Record<GenerationStep, string> = {
+      generateProblemText: "Problem Text",
+      generateTestCases: "Test Cases",
+      generateTestCaseInputCode: "Test Case Input Code",
+      generateTestCaseInputs: "Test Case Inputs",
+      generateSolution: "Solution",
+      generateTestCaseOutputs: "Test Case Outputs",
+    };
+    return names[step];
+  };
 
-    // Additionally, if generation failed at this specific step, show buttons
-    const isFailedAtThisStep = isFailed && currentStep === step;
+  // Calculate overall progress
+  const overallProgress = useMemo(() => {
+    const completed = completedSteps.length;
+    const total = STEP_ORDER.length;
+    return {
+      completed,
+      total,
+      percent: total > 0 ? Math.round((completed / total) * 100) : 0,
+    };
+  }, [completedSteps]);
 
-    return generalCondition || isFailedAtThisStep;
+  // Get overall status
+  const overallStatus = useMemo(() => {
+    if (isFailed)
+      return { type: "error" as const, message: "Generation failed" };
+    if (isGenerating && currentStep) {
+      return {
+        type: "generating" as const,
+        message: `Generating ${getStepDisplayName(currentStep)}...`,
+      };
+    }
+    if (completedSteps.length === STEP_ORDER.length) {
+      return { type: "complete" as const, message: "Generation complete" };
+    }
+    if (completedSteps.length > 0) {
+      return {
+        type: "partial" as const,
+        message: `${completedSteps.length} of ${STEP_ORDER.length} steps complete`,
+      };
+    }
+    return { type: "idle" as const, message: "Ready to generate" };
+  }, [isFailed, isGenerating, currentStep, completedSteps]);
+
+  // Top-level status indicator component
+  const TopLevelStatusIndicator = () => {
+    return (
+      <div className="border rounded-lg p-3 bg-muted/50 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            {overallStatus.type === "generating" && (
+              <Loader2Icon className="h-4 w-4 animate-spin text-primary" />
+            )}
+            {overallStatus.type === "complete" && (
+              <CheckCircle2Icon className="h-4 w-4 text-green-600" />
+            )}
+            {overallStatus.type === "error" && (
+              <XCircleIcon className="h-4 w-4 text-destructive" />
+            )}
+            {overallStatus.type === "idle" && (
+              <ClockIcon className="h-4 w-4 text-muted-foreground" />
+            )}
+            <span className="text-sm font-medium">{overallStatus.message}</span>
+          </div>
+          {overallStatus.type !== "idle" && (
+            <Badge variant="outline" className="text-xs">
+              {overallProgress.completed}/{overallProgress.total}
+            </Badge>
+          )}
+        </div>
+        {overallStatus.type === "generating" && (
+          <div className="w-full bg-background rounded-full h-2 overflow-hidden">
+            <div
+              className="h-full bg-primary transition-all duration-300"
+              style={{ width: `${overallProgress.percent}%` }}
+            />
+          </div>
+        )}
+        {currentStep && overallStatus.type === "generating" && (
+          <div className="text-xs text-muted-foreground">
+            Current step: {getStepDisplayName(currentStep)}
+          </div>
+        )}
+        {generationError && overallStatus.type === "error" && (
+          <div className="text-xs text-destructive">
+            {typeof generationError === "string"
+              ? generationError
+              : String(generationError)}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Helper component to render step status indicator
+  const StepStatusBadge = ({ status }: { status: StepStatus }) => {
+    switch (status) {
+      case "loading":
+        return (
+          <Badge variant="outline" className="gap-1">
+            <Loader2Icon className="h-3 w-3 animate-spin" />
+            Loading
+          </Badge>
+        );
+      case "complete":
+        return (
+          <Badge variant="outline" className="gap-1 text-green-600">
+            <CheckCircle2Icon className="h-3 w-3" />
+            Complete
+          </Badge>
+        );
+      case "error":
+        return (
+          <Badge variant="destructive" className="gap-1">
+            <XCircleIcon className="h-3 w-3" />
+            Error
+          </Badge>
+        );
+      case "pending":
+        return (
+          <Badge variant="outline" className="gap-1">
+            <ClockIcon className="h-3 w-3" />
+            Pending
+          </Badge>
+        );
+      default:
+        return null;
+    }
+  };
+
+  // Helper component for step section
+  const StepSection = ({
+    step,
+    stepIndex,
+    title,
+    isLoading,
+    error,
+    hasData,
+    onGenerate,
+    onGenerateWithError,
+    onRefetch,
+    requiresModel = false,
+    children,
+  }: {
+    step: GenerationStep;
+    stepIndex: number;
+    title: string;
+    isLoading: boolean;
+    error: unknown;
+    hasData: boolean;
+    onGenerate: () => void;
+    onGenerateWithError?: () => void;
+    onRefetch: () => void;
+    requiresModel?: boolean;
+    children: React.ReactNode;
+  }) => {
+    const stepStatus = getStepStatus(step, isLoading, error, hasData);
+    const isVisible = shouldShowStep(
+      step,
+      stepIndex,
+      isLoading,
+      error,
+      hasData
+    );
+
+    if (!isVisible) return null;
+
+    // Determine default open state: open if loading, error, or pending; closed if complete
+    const defaultOpen =
+      stepStatus === "loading" ||
+      stepStatus === "error" ||
+      stepStatus === "pending";
+    const isOpen =
+      openSections[step] !== undefined ? openSections[step] : defaultOpen;
+
+    const handleGenerate = () => {
+      invalidateSubsequentSteps(stepIndex);
+      onGenerate();
+    };
+
+    const handleGenerateWithError = () => {
+      if (onGenerateWithError) {
+        invalidateSubsequentSteps(stepIndex);
+        onGenerateWithError();
+      }
+    };
+
+    return (
+      <Collapsible
+        open={isOpen}
+        onOpenChange={(open) => {
+          setOpenSections((prev) => ({
+            ...prev,
+            [step]: open,
+          }));
+        }}
+        className="border-b pb-4"
+      >
+        <CollapsibleTrigger className="w-full">
+          <div className="flex items-center justify-between gap-2 w-full py-2 hover:bg-muted/50 rounded-md px-2 -mx-2 transition-colors">
+            <div className="flex items-center gap-2">
+              <ChevronDownIcon
+                className={`h-4 w-4 transition-transform ${
+                  isOpen ? "rotate-0" : "-rotate-90"
+                }`}
+              />
+              <h3 className="text-sm font-medium">{title}</h3>
+              <StepStatusBadge status={stepStatus} />
+            </div>
+          </div>
+        </CollapsibleTrigger>
+
+        <CollapsibleContent className="space-y-2 pt-2">
+          {(stepStatus === "complete" ||
+            stepStatus === "error" ||
+            !isGenerating ||
+            isFailed) && (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGenerate}
+                disabled={requiresModel && !selectedModel}
+              >
+                {hasData ? "Re-generate" : "Generate"}
+              </Button>
+              {onGenerateWithError && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateWithError}
+                  disabled={requiresModel && !selectedModel}
+                >
+                  {hasData ? "Re-generate" : "Generate"} (force error)
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={onRefetch}>
+                Re-fetch
+              </Button>
+            </div>
+          )}
+
+          {error != null && (
+            <Alert variant="destructive">
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription className="flex items-center justify-between">
+                <span>
+                  {error instanceof Error
+                    ? error.message
+                    : typeof error === "string"
+                      ? error
+                      : "An error occurred"}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerate}
+                  className="ml-2"
+                >
+                  Retry
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {stepStatus === "loading" && <Loader />}
+
+          {stepStatus === "complete" && !isLoading && <>{children}</>}
+        </CollapsibleContent>
+      </Collapsible>
+    );
   };
 
   return (
@@ -274,7 +640,10 @@ export default function ProblemRender({
       >
         <ResizablePanel defaultSize={20} className="min-h-0">
           <div className="h-full overflow-auto p-4 flex flex-col gap-4">
-            <div>Problem: {problemId}</div>
+            <div className="font-semibold">Problem: {problemId}</div>
+
+            <TopLevelStatusIndicator />
+
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="auto-enqueue"
@@ -292,6 +661,7 @@ export default function ProblemRender({
                 Auto-enqueue next step
               </Label>
             </div>
+
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="return-dummy"
@@ -309,510 +679,299 @@ export default function ProblemRender({
                 Return dummy data
               </Label>
             </div>
+
+            {models && models.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Model</label>
+                {isModelsLoading ? (
+                  <div className="text-sm text-muted-foreground">
+                    Loading models...
+                  </div>
+                ) : modelsError ? (
+                  <Alert variant="destructive">
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>
+                      {modelsError instanceof Error
+                        ? modelsError.message
+                        : String(modelsError)}
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <Select
+                    value={selectedModel}
+                    onValueChange={setSelectedModel}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {models.map((model) => (
+                        <SelectItem key={model.id} value={model.name}>
+                          {model.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            )}
+
             {generationError && (
               <Alert variant="destructive">
                 <AlertTitle>Generation Error</AlertTitle>
                 <AlertDescription>{generationError}</AlertDescription>
               </Alert>
             )}
-            <div>
-              {shouldShowButtonsForStep("generateProblemText") && (
-                <>
-                  <Button
-                    variant={"outline"}
-                    onClick={() =>
-                      callGenerateProblemText(
-                        selectedModel,
-                        false,
-                        autoEnqueue,
-                        returnDummy
-                      )
-                    }
-                    disabled={!selectedModel}
-                  >
-                    {problemText ? "Re-generate" : "Generate"} Problem Text
-                  </Button>
-                  <Button
-                    variant={"outline"}
-                    onClick={() =>
-                      callGenerateProblemText(
-                        selectedModel,
-                        true,
-                        autoEnqueue,
-                        returnDummy
-                      )
-                    }
-                    disabled={!selectedModel}
-                  >
-                    {problemText ? "Re-generate" : "Generate"} Problem Text
-                    (force error)
-                  </Button>
-                  <Button variant={"outline"} onClick={() => getProblemText()}>
-                    Re-fetch Problem Text
-                  </Button>
-                </>
-              )}
-              {(() => {
-                const hasProblemText =
-                  problemText?.problemText && problemText?.functionSignature;
-                const isGeneratingProblemText =
-                  isGenerating &&
-                  !completedSteps.includes("generateProblemText");
-                const shouldShowLoader =
-                  (isProblemTextLoading ||
-                    (isGeneratingProblemText && !hasProblemText) ||
-                    (!hasProblemText && !problemTextError)) &&
-                  !problemTextError;
 
-                return (
-                  <>
-                    {problemTextError && (
-                      <Alert variant="destructive" className="mb-4">
-                        <AlertTitle>Error</AlertTitle>
-                        <AlertDescription>
-                          {problemTextError instanceof Error
-                            ? problemTextError.message
-                            : String(problemTextError)}
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                    {shouldShowLoader ? (
-                      <Loader />
-                    ) : (
-                      hasProblemText && (
-                        <>
-                          <MessageResponse>
-                            {problemText.problemText}
-                          </MessageResponse>
-                          <MessageResponse>
-                            {problemText.problemTextReworded}
-                          </MessageResponse>
-                        </>
-                      )
-                    )}
-                  </>
-                );
-              })()}
-            </div>
-            <div>
-              {shouldShowButtonsForStep("generateTestCases") && (
-                <>
-                  <Button
-                    variant={"outline"}
-                    onClick={() =>
-                      callGenerateTestCases(
-                        selectedModel,
-                        false,
-                        autoEnqueue,
-                        returnDummy
-                      )
-                    }
-                    disabled={!selectedModel}
-                  >
-                    {testCases ? "Re-generate" : "Generate"} Test Case
-                    Descriptions
-                  </Button>
-                  <Button
-                    variant={"outline"}
-                    onClick={() =>
-                      callGenerateTestCases(
-                        selectedModel,
-                        true,
-                        autoEnqueue,
-                        returnDummy
-                      )
-                    }
-                    disabled={!selectedModel}
-                  >
-                    {testCases ? "Re-generate" : "Generate"} Test Case
-                    Descriptions (force error)
-                  </Button>
-                  <Button variant={"outline"} onClick={() => getTestCases()}>
-                    Re-fetch Test Case Descriptions
-                  </Button>
-                </>
-              )}
-              <>
-                {testCasesError && (
-                  <Alert variant="destructive" className="mb-4">
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>
-                      {testCasesError instanceof Error
-                        ? testCasesError.message
-                        : String(testCasesError)}
-                    </AlertDescription>
-                  </Alert>
-                )}
-                {isTestCasesLoading ||
-                (isGenerating &&
-                  !completedSteps.includes("generateTestCases") &&
-                  !testCases &&
-                  !testCasesError) ? (
-                  <Loader />
-                ) : (
-                  testCases && (
-                    <div>
-                      {testCases.map((testCase, i) => (
-                        <div key={`testcase-description-${i}`}>
-                          {testCase.description}
-                          {testCase.isEdgeCase ? " [Edge Case]" : ""}
-                        </div>
-                      ))}
-                    </div>
+            <div className="space-y-4">
+              <StepSection
+                step="generateProblemText"
+                stepIndex={0}
+                title="Problem Text"
+                isLoading={isProblemTextLoading}
+                error={problemTextError}
+                hasData={
+                  !!(problemText?.problemText && problemText?.functionSignature)
+                }
+                onGenerate={() =>
+                  callGenerateProblemText(
+                    selectedModel,
+                    false,
+                    autoEnqueue,
+                    returnDummy
                   )
-                )}
-              </>
-            </div>
-            <div>
-              {shouldShowButtonsForStep("generateTestCaseInputCode") && (
-                <>
-                  <Button
-                    variant={"outline"}
-                    onClick={() =>
-                      callGenerateTestCaseInputCode(
-                        selectedModel,
-                        false,
-                        autoEnqueue,
-                        returnDummy
-                      )
-                    }
-                    disabled={!selectedModel}
-                  >
-                    {testCaseInputCode ? "Re-generate" : "Generate"} Test Case
-                    Input Code
-                  </Button>
-                  <Button
-                    variant={"outline"}
-                    onClick={() =>
-                      callGenerateTestCaseInputCode(
-                        selectedModel,
-                        true,
-                        autoEnqueue,
-                        returnDummy
-                      )
-                    }
-                    disabled={!selectedModel}
-                  >
-                    {testCaseInputCode ? "Re-generate" : "Generate"} Test Case
-                    Input Code (force error)
-                  </Button>
-                  <Button
-                    variant={"outline"}
-                    onClick={() => getCodeToGenerateTestCaseInputs()}
-                  >
-                    Re-fetch Test Case Input Code
-                  </Button>
-                </>
-              )}
-              <>
-                {testCaseInputCodeError && (
-                  <Alert variant="destructive" className="mb-4">
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>
-                      {testCaseInputCodeError instanceof Error
-                        ? testCaseInputCodeError.message
-                        : String(testCaseInputCodeError)}
-                    </AlertDescription>
-                  </Alert>
-                )}
-                {isTestCaseInputsLoading ||
-                (isGenerating &&
-                  !completedSteps.includes("generateTestCaseInputCode") &&
-                  !testCaseInputCode &&
-                  !testCaseInputCodeError) ? (
-                  <Loader />
-                ) : (
-                  testCaseInputCode && (
-                    <div>
-                      {testCaseInputCode.map((testCaseInput, i) => (
-                        <div key={`testcase-input-${i}`}>{testCaseInput}</div>
-                      ))}
-                    </div>
+                }
+                onGenerateWithError={() =>
+                  callGenerateProblemText(
+                    selectedModel,
+                    true,
+                    autoEnqueue,
+                    returnDummy
                   )
-                )}
-              </>
-            </div>
-            <div>
-              {shouldShowButtonsForStep("generateTestCaseInputs") && (
-                <>
-                  <Button
-                    variant={"outline"}
-                    onClick={() => callGenerateTestCaseInputs(autoEnqueue)}
-                  >
-                    {testCaseInputs ? "Re-run" : "Run"} Generate Input
-                  </Button>
-                  <Button
-                    variant={"outline"}
-                    onClick={() => getTestCaseInputs()}
-                  >
-                    Re-fetch Test Case Inputs
-                  </Button>
-                </>
-              )}
-              <>
-                {testCaseInputsError && (
-                  <Alert variant="destructive" className="mb-4">
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>
-                      {testCaseInputsError instanceof Error
-                        ? testCaseInputsError.message
-                        : String(testCaseInputsError)}
-                    </AlertDescription>
-                  </Alert>
-                )}
-                {isGenerateTestCaseInputsLoading ||
-                (isGenerating &&
-                  !completedSteps.includes("generateTestCaseInputs") &&
-                  !testCaseInputs &&
-                  !testCaseInputsError) ? (
-                  <Loader />
-                ) : (
-                  testCaseInputs && (
-                    <div>
-                      {testCaseInputs.map((result, i) => (
-                        <div key={`run-generate-input-result-${i}`}>
-                          {JSON.stringify(result)}
-                        </div>
-                      ))}
-                    </div>
-                  )
-                )}
-              </>
-            </div>
-            <div>
-              {shouldShowButtonsForStep("generateSolution") && (
-                <>
-                  <Button
-                    variant={"outline"}
-                    onClick={() =>
-                      callGenerateSolution(
-                        selectedModel,
-                        undefined,
-                        autoEnqueue,
-                        false,
-                        returnDummy
-                      )
-                    }
-                  >
-                    {solution ? "Re-generate" : "Generate"} Solution
-                  </Button>
-                  <Button
-                    variant={"outline"}
-                    onClick={() =>
-                      callGenerateSolution(
-                        selectedModel,
-                        undefined,
-                        autoEnqueue,
-                        true,
-                        returnDummy
-                      )
-                    }
-                  >
-                    {solution ? "Re-generate" : "Generate"} Solution (force
-                    error)
-                  </Button>
-                  <Button variant={"outline"} onClick={() => getSolution()}>
-                    Re-fetch Solution
-                  </Button>
-                </>
-              )}
-              <>
-                {solutionError && (
-                  <Alert variant="destructive" className="mb-4">
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>
-                      {solutionError instanceof Error
-                        ? solutionError.message
-                        : String(solutionError)}
-                    </AlertDescription>
-                  </Alert>
-                )}
-                {isGenerateSolutionLoading ||
-                (isGenerating &&
-                  !completedSteps.includes("generateSolution") &&
-                  !solution &&
-                  !solutionError) ? (
-                  <Loader />
-                ) : (
-                  solution && <MessageResponse>{solution}</MessageResponse>
-                )}
-              </>
-            </div>
-            <div>
-              {shouldShowButtonsForStep("generateTestCaseOutputs") && (
-                <>
-                  <Button
-                    variant={"outline"}
-                    onClick={() => callGenerateTestCaseOutputs(autoEnqueue)}
-                  >
-                    {testCaseOutputs ? "Re-generate" : "Generate"} Test Case
-                    Outputs
-                  </Button>
-                  <Button
-                    variant={"outline"}
-                    onClick={() => getTestCaseOutputs()}
-                  >
-                    Re-fetch Test Case Outputs
-                  </Button>
-                </>
-              )}
-              <>
-                {testCaseOutputsError && (
-                  <Alert variant="destructive" className="mb-4">
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>
-                      {testCaseOutputsError instanceof Error
-                        ? testCaseOutputsError.message
-                        : String(testCaseOutputsError)}
-                    </AlertDescription>
-                  </Alert>
-                )}
-                {isGenerateTestCaseOutputsLoading ||
-                (isGenerating &&
-                  !completedSteps.includes("generateTestCaseOutputs") &&
-                  !testCaseOutputs &&
-                  !testCaseOutputsError) ? (
-                  <Loader />
-                ) : (
-                  testCaseOutputs && (
-                    <div>
-                      {testCaseOutputs.map((output, i) => (
-                        <div key={`testcase-output-${i}`}>
-                          {JSON.stringify(output)}
-                        </div>
-                      ))}
-                    </div>
-                  )
-                )}
-              </>
-            </div>
-            <div>
-              <Button
-                variant={"outline"}
-                onClick={async () => {
-                  try {
-                    await callRunUserSolution();
-                  } catch (error) {
-                    // Error is handled by the hook's error state
-                    console.error("Failed to run user solution:", error);
-                  }
-                }}
-                disabled={isRunUserSolutionLoading}
+                }
+                onRefetch={getProblemText}
+                requiresModel={true}
               >
-                {isRunUserSolutionLoading ? "Running..." : "Run User Solution"}
-              </Button>
+                {problemText && (
+                  <>
+                    <MessageResponse>{problemText.problemText}</MessageResponse>
+                    <MessageResponse>
+                      {problemText.problemTextReworded}
+                    </MessageResponse>
+                  </>
+                )}
+              </StepSection>
+              <StepSection
+                step="generateTestCases"
+                stepIndex={1}
+                title="Test Case Descriptions"
+                isLoading={isTestCasesLoading}
+                error={testCasesError}
+                hasData={!!testCases && testCases.length > 0}
+                onGenerate={() =>
+                  callGenerateTestCases(
+                    selectedModel,
+                    false,
+                    autoEnqueue,
+                    returnDummy
+                  )
+                }
+                onGenerateWithError={() =>
+                  callGenerateTestCases(
+                    selectedModel,
+                    true,
+                    autoEnqueue,
+                    returnDummy
+                  )
+                }
+                onRefetch={getTestCases}
+                requiresModel={true}
+              >
+                {testCases && (
+                  <div className="space-y-1">
+                    {testCases.map((testCase, i) => (
+                      <div
+                        key={`testcase-description-${i}`}
+                        className="text-sm"
+                      >
+                        {testCase.description}
+                        {testCase.isEdgeCase && (
+                          <Badge variant="outline" className="ml-2">
+                            Edge Case
+                          </Badge>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </StepSection>
+              <StepSection
+                step="generateTestCaseInputCode"
+                stepIndex={2}
+                title="Test Case Input Code"
+                isLoading={isTestCaseInputsLoading}
+                error={testCaseInputCodeError}
+                hasData={!!testCaseInputCode && testCaseInputCode.length > 0}
+                onGenerate={() =>
+                  callGenerateTestCaseInputCode(
+                    selectedModel,
+                    false,
+                    autoEnqueue,
+                    returnDummy
+                  )
+                }
+                onGenerateWithError={() =>
+                  callGenerateTestCaseInputCode(
+                    selectedModel,
+                    true,
+                    autoEnqueue,
+                    returnDummy
+                  )
+                }
+                onRefetch={getCodeToGenerateTestCaseInputs}
+                requiresModel={true}
+              >
+                {testCaseInputCode && (
+                  <div className="space-y-1">
+                    {testCaseInputCode.map((code, i) => (
+                      <div
+                        key={`testcase-input-code-${i}`}
+                        className="text-sm font-mono bg-muted p-2 rounded"
+                      >
+                        {code}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </StepSection>
+              <StepSection
+                step="generateTestCaseInputs"
+                stepIndex={3}
+                title="Test Case Inputs"
+                isLoading={isGenerateTestCaseInputsLoading}
+                error={testCaseInputsError}
+                hasData={!!testCaseInputs && testCaseInputs.length > 0}
+                onGenerate={() => callGenerateTestCaseInputs(autoEnqueue)}
+                onRefetch={getTestCaseInputs}
+              >
+                {testCaseInputs && (
+                  <div className="space-y-1">
+                    {testCaseInputs.map((result, i) => (
+                      <div
+                        key={`testcase-input-${i}`}
+                        className="text-sm font-mono bg-muted p-2 rounded"
+                      >
+                        {JSON.stringify(result, null, 2)}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </StepSection>
+              <StepSection
+                step="generateSolution"
+                stepIndex={4}
+                title="Solution"
+                isLoading={isGenerateSolutionLoading}
+                error={solutionError}
+                hasData={!!solution}
+                onGenerate={() =>
+                  callGenerateSolution(
+                    selectedModel,
+                    undefined,
+                    autoEnqueue,
+                    false,
+                    returnDummy
+                  )
+                }
+                onGenerateWithError={() =>
+                  callGenerateSolution(
+                    selectedModel,
+                    undefined,
+                    autoEnqueue,
+                    true,
+                    returnDummy
+                  )
+                }
+                onRefetch={getSolution}
+                requiresModel={true}
+              >
+                {solution && <MessageResponse>{solution}</MessageResponse>}
+              </StepSection>
+              <StepSection
+                step="generateTestCaseOutputs"
+                stepIndex={5}
+                title="Test Case Outputs"
+                isLoading={isGenerateTestCaseOutputsLoading}
+                error={testCaseOutputsError}
+                hasData={!!testCaseOutputs && testCaseOutputs.length > 0}
+                onGenerate={() => callGenerateTestCaseOutputs(autoEnqueue)}
+                onRefetch={getTestCaseOutputs}
+              >
+                {testCaseOutputs && (
+                  <div className="space-y-1">
+                    {testCaseOutputs.map((output, i) => (
+                      <div
+                        key={`testcase-output-${i}`}
+                        className="text-sm font-mono bg-muted p-2 rounded"
+                      >
+                        {JSON.stringify(output, null, 2)}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </StepSection>
             </div>
-            <div className="space-y-2">
-              <div className="flex gap-2 items-end">
-                <div className="flex-1 space-y-2">
-                  <label className="text-sm font-medium">
-                    Generate Solution with Model
-                  </label>
-                  {isModelsLoading ? (
-                    <div className="text-sm text-muted-foreground">
-                      Loading models...
-                    </div>
-                  ) : modelsError ? (
-                    <Alert variant="destructive">
-                      <AlertTitle>Error</AlertTitle>
-                      <AlertDescription>
-                        {modelsError instanceof Error
-                          ? modelsError.message
-                          : String(modelsError)}
-                      </AlertDescription>
-                    </Alert>
-                  ) : (
-                    <Select
-                      value={selectedModel}
-                      onValueChange={setSelectedModel}
-                      disabled={isGenerateSolutionWithModelLoading}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select a model" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {models.map((model) => (
-                          <SelectItem key={model.id} value={model.name}>
-                            {model.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
+            <Collapsible
+              open={openSections["runUserSolution"] ?? false}
+              onOpenChange={(open) => {
+                setOpenSections((prev) => ({
+                  ...prev,
+                  runUserSolution: open,
+                }));
+              }}
+              className="border-b pb-4"
+            >
+              <CollapsibleTrigger className="w-full">
+                <div className="flex items-center justify-between gap-2 w-full py-2 hover:bg-muted/50 rounded-md px-2 -mx-2 transition-colors">
+                  <div className="flex items-center gap-2">
+                    <ChevronDownIcon
+                      className={`h-4 w-4 transition-transform ${
+                        openSections["runUserSolution"]
+                          ? "rotate-0"
+                          : "-rotate-90"
+                      }`}
+                    />
+                    <h3 className="text-sm font-medium">Run User Solution</h3>
+                  </div>
                 </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-2 pt-2">
                 <Button
-                  variant={"outline"}
+                  variant="outline"
+                  size="sm"
                   onClick={async () => {
-                    if (!selectedModel) {
-                      alert("Please select a model");
-                      return;
-                    }
                     try {
-                      const generatedSolution =
-                        await callGenerateSolutionWithModel(
-                          selectedModel,
-                          false,
-                          autoEnqueue,
-                          false
-                        );
-                      if (generatedSolution) {
-                        setUserSolution(generatedSolution);
-                      }
+                      await callRunUserSolution();
                     } catch (error) {
-                      console.error("Failed to generate solution:", error);
+                      console.error("Failed to run user solution:", error);
                     }
                   }}
-                  disabled={
-                    isGenerateSolutionWithModelLoading || !selectedModel
-                  }
+                  disabled={isRunUserSolutionLoading}
                 >
-                  {isGenerateSolutionWithModelLoading
-                    ? "Generating..."
-                    : "Generate Solution"}
+                  {isRunUserSolutionLoading
+                    ? "Running..."
+                    : "Run User Solution"}
                 </Button>
-                <Button
-                  variant={"outline"}
-                  onClick={async () => {
-                    if (!selectedModel) {
-                      alert("Please select a model");
-                      return;
-                    }
-                    try {
-                      const generatedSolution =
-                        await callGenerateSolutionWithModel(
-                          selectedModel,
-                          false,
-                          autoEnqueue,
-                          true
-                        );
-                      if (generatedSolution) {
-                        setUserSolution(generatedSolution);
-                      }
-                    } catch (error) {
-                      console.error("Failed to generate solution:", error);
-                    }
-                  }}
-                  disabled={
-                    isGenerateSolutionWithModelLoading || !selectedModel
-                  }
-                >
-                  {isGenerateSolutionWithModelLoading
-                    ? "Generating..."
-                    : "Generate Solution (force error)"}
-                </Button>
-              </div>
-            </div>
-            {isRunUserSolutionLoading ? (
-              <div className="flex items-center gap-2 py-4">
-                <Loader />
-                <span className="text-sm text-muted-foreground">
-                  Running tests...
-                </span>
-              </div>
-            ) : (
-              <>
+                {isRunUserSolutionLoading && (
+                  <div className="flex items-center gap-2">
+                    <Loader />
+                    <span className="text-sm text-muted-foreground">
+                      Running tests...
+                    </span>
+                  </div>
+                )}
                 {userSolutionError && (
-                  <Alert variant="destructive" className="mb-4">
+                  <Alert variant="destructive">
                     <AlertTitle>Error</AlertTitle>
                     <AlertDescription>
                       {userSolutionError instanceof Error
@@ -822,23 +981,124 @@ export default function ProblemRender({
                   </Alert>
                 )}
                 {userSolutionTestResults && (
-                  <div>
+                  <div className="space-y-1">
                     {userSolutionTestResults.map((testResult, i) => (
-                      <div key={`user-solution-test-result-${i}`}>
-                        {JSON.stringify({
-                          testCase: testResult.testCase.description,
-                          status: testResult.status,
-                          actual: testResult.actual,
-                          error: testResult.error,
-                          expected: testResult.testCase.expected,
-                          stdout: testResult.stdout,
-                        })}
+                      <div
+                        key={`user-solution-test-result-${i}`}
+                        className="text-sm font-mono bg-muted p-2 rounded"
+                      >
+                        {JSON.stringify(
+                          {
+                            testCase: testResult.testCase.description,
+                            status: testResult.status,
+                            actual: testResult.actual,
+                            error: testResult.error,
+                            expected: testResult.testCase.expected,
+                            stdout: testResult.stdout,
+                          },
+                          null,
+                          2
+                        )}
                       </div>
                     ))}
                   </div>
                 )}
-              </>
-            )}
+              </CollapsibleContent>
+            </Collapsible>
+
+            <Collapsible
+              open={openSections["generateSolutionWithModel"] ?? false}
+              onOpenChange={(open) => {
+                setOpenSections((prev) => ({
+                  ...prev,
+                  generateSolutionWithModel: open,
+                }));
+              }}
+              className="border-b pb-4"
+            >
+              <CollapsibleTrigger className="w-full">
+                <div className="flex items-center justify-between gap-2 w-full py-2 hover:bg-muted/50 rounded-md px-2 -mx-2 transition-colors">
+                  <div className="flex items-center gap-2">
+                    <ChevronDownIcon
+                      className={`h-4 w-4 transition-transform ${
+                        openSections["generateSolutionWithModel"]
+                          ? "rotate-0"
+                          : "-rotate-90"
+                      }`}
+                    />
+                    <h3 className="text-sm font-medium">
+                      Generate Solution with Model
+                    </h3>
+                  </div>
+                </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-2 pt-2">
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      if (!selectedModel) {
+                        alert("Please select a model");
+                        return;
+                      }
+                      try {
+                        const generatedSolution =
+                          await callGenerateSolutionWithModel(
+                            selectedModel,
+                            false,
+                            autoEnqueue,
+                            false
+                          );
+                        if (generatedSolution) {
+                          setUserSolution(generatedSolution);
+                        }
+                      } catch (error) {
+                        console.error("Failed to generate solution:", error);
+                      }
+                    }}
+                    disabled={
+                      isGenerateSolutionWithModelLoading || !selectedModel
+                    }
+                  >
+                    {isGenerateSolutionWithModelLoading
+                      ? "Generating..."
+                      : "Generate Solution"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      if (!selectedModel) {
+                        alert("Please select a model");
+                        return;
+                      }
+                      try {
+                        const generatedSolution =
+                          await callGenerateSolutionWithModel(
+                            selectedModel,
+                            false,
+                            autoEnqueue,
+                            true
+                          );
+                        if (generatedSolution) {
+                          setUserSolution(generatedSolution);
+                        }
+                      } catch (error) {
+                        console.error("Failed to generate solution:", error);
+                      }
+                    }}
+                    disabled={
+                      isGenerateSolutionWithModelLoading || !selectedModel
+                    }
+                  >
+                    {isGenerateSolutionWithModelLoading
+                      ? "Generating..."
+                      : "Generate Solution (force error)"}
+                  </Button>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           </div>
         </ResizablePanel>
         <ResizableHandle withHandle />
