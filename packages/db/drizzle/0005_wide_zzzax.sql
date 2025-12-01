@@ -1,0 +1,1 @@
+ALTER TABLE "problems" ALTER COLUMN "generated_by_user_id" SET NOT NULL;

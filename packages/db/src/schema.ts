@@ -20,7 +20,7 @@ export const problems = pgTable("problems", {
   functionSignature: text("function_signature").notNull(),
   solution: text("solution"),
   generatedByModelId: uuid("generated_by_model_id").references(() => models.id),
-  generatedByUserId: text("generated_by_user_id"),
+  generatedByUserId: text("generated_by_user_id").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

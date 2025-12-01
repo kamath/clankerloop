@@ -36,6 +36,13 @@
       "when": 1764533478786,
       "tag": "0004_third_living_mummy",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1764570982509,
+      "tag": "0005_wide_zzzax",
+      "breakpoints": true
     }
   ]
 }
