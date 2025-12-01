@@ -74,6 +74,37 @@ async function getOrCreateModel(modelName: string): Promise<string> {
   return model.id;
 }
 
+// Helper to check if a generate step should be idempotent (return 409)
+async function shouldReturnIdempotentError(
+  problemId: string,
+  step: GenerationStep,
+  dataExists: boolean,
+): Promise<boolean> {
+  // If data doesn't exist, allow generation
+  if (!dataExists) {
+    return false;
+  }
+
+  // Get the latest job for the problem
+  const job = await getLatestJobForProblem(problemId);
+  if (!job) {
+    // No job exists, but data exists - allow regeneration
+    return false;
+  }
+
+  // Check if step is completed successfully (in completedSteps and job not failed)
+  const isCompleted =
+    job.completedSteps?.includes(step) && job.status !== "failed";
+
+  // Check if step is currently in progress
+  const isInProgress =
+    job.currentStep === step &&
+    (job.status === "in_progress" || job.status === "pending");
+
+  // Return true if step is completed or in progress
+  return isCompleted || isInProgress;
+}
+
 // Helper to start workflow if autoGenerate is enabled (for problem creation)
 async function startWorkflowIfAuto(
   c: Context<{ Bindings: Env; Variables: { userId: string } }>,
@@ -234,6 +265,32 @@ problems.openapi(generateProblemTextRoute, async (c) => {
     await updateProblem(problemId, { generatedByModelId: modelId });
   }
 
+  // Check idempotency: if data exists and step completed/in progress, return 409
+  const dataExists =
+    problem.problemText &&
+    problem.functionSignature &&
+    problem.problemText.trim() !== "" &&
+    problem.functionSignature.trim() !== "";
+  if (
+    await shouldReturnIdempotentError(
+      problemId,
+      "generateProblemText",
+      dataExists ? true : false, // Cast as boolean since operation can return string
+    )
+  ) {
+    return c.json(
+      {
+        success: false as const,
+        error: {
+          code: "IDEMPOTENT_ERROR",
+          message:
+            "Problem text already exists and generation step has completed or is in progress",
+        },
+      },
+      409,
+    );
+  }
+
   const userId = problem.generatedByUserId || "unknown";
   const result = await generateProblemText(
     problemId,
@@ -287,6 +344,28 @@ problems.openapi(generateTestCasesRoute, async (c) => {
         },
       },
       400,
+    );
+  }
+
+  // Check idempotency: if data exists and step completed/in progress, return 409
+  const dataExists = problem.testCases && problem.testCases.length > 0;
+  if (
+    await shouldReturnIdempotentError(
+      problemId,
+      "generateTestCases",
+      dataExists,
+    )
+  ) {
+    return c.json(
+      {
+        success: false as const,
+        error: {
+          code: "IDEMPOTENT_ERROR",
+          message:
+            "Test cases already exist and generation step has completed or is in progress",
+        },
+      },
+      409,
     );
   }
 
@@ -372,6 +451,30 @@ problems.openapi(generateInputCodeRoute, async (c) => {
     );
   }
 
+  // Check idempotency: if data exists and step completed/in progress, return 409
+  const dataExists = problem.testCases.every(
+    (tc) => tc.inputCode && tc.inputCode.trim() !== "",
+  );
+  if (
+    await shouldReturnIdempotentError(
+      problemId,
+      "generateTestCaseInputCode",
+      dataExists,
+    )
+  ) {
+    return c.json(
+      {
+        success: false as const,
+        error: {
+          code: "IDEMPOTENT_ERROR",
+          message:
+            "Test case input code already exists and generation step has completed or is in progress",
+        },
+      },
+      409,
+    );
+  }
+
   // Update problem with model if not set
   if (!problem.generatedByModelId) {
     const modelId = await getOrCreateModel(body.model);
@@ -453,6 +556,30 @@ problems.openapi(generateInputsRoute, async (c) => {
     );
   }
 
+  // Check idempotency: if data exists and step completed/in progress, return 409
+  const dataExists = problem.testCases.every(
+    (tc) => tc.input !== null && tc.input !== undefined,
+  );
+  if (
+    await shouldReturnIdempotentError(
+      problemId,
+      "generateTestCaseInputs",
+      dataExists,
+    )
+  ) {
+    return c.json(
+      {
+        success: false as const,
+        error: {
+          code: "IDEMPOTENT_ERROR",
+          message:
+            "Test case inputs already exist and generation step has completed or is in progress",
+        },
+      },
+      409,
+    );
+  }
+
   const sandboxId = `test-inputs-${problemId}`;
   const sandbox = getSandboxInstance(c.env, sandboxId);
   const result = await generateTestCaseInputs(problemId, sandbox);
@@ -525,6 +652,29 @@ problems.openapi(generateSolutionRoute, async (c) => {
         },
       },
       400,
+    );
+  }
+
+  // Check idempotency: if data exists and step completed/in progress, return 409
+  const dataExists =
+    problem.solution && problem.solution.trim() !== "";
+  if (
+    await shouldReturnIdempotentError(
+      problemId,
+      "generateSolution",
+      dataExists ? true : false, // Cast as boolean since operation can return string
+    )
+  ) {
+    return c.json(
+      {
+        success: false as const,
+        error: {
+          code: "IDEMPOTENT_ERROR",
+          message:
+            "Solution already exists and generation step has completed or is in progress",
+        },
+      },
+      409,
     );
   }
 
@@ -620,6 +770,33 @@ problems.openapi(generateOutputsRoute, async (c) => {
         },
       },
       400,
+    );
+  }
+
+  // Check idempotency: if data exists and step completed/in progress, return 409
+  const dataExists =
+    problem.testCases &&
+    problem.testCases.length > 0 &&
+    problem.testCases.every(
+      (tc) => tc.expected !== null && tc.expected !== undefined,
+    );
+  if (
+    await shouldReturnIdempotentError(
+      problemId,
+      "generateTestCaseOutputs",
+      dataExists,
+    )
+  ) {
+    return c.json(
+      {
+        success: false as const,
+        error: {
+          code: "IDEMPOTENT_ERROR",
+          message:
+            "Test case outputs already exist and generation step has completed or is in progress",
+        },
+      },
+      409,
     );
   }
 
