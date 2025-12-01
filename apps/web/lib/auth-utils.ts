@@ -4,7 +4,6 @@ const ALGORITHM = "aes-256-gcm";
 const KEY_LENGTH = 32; // 256 bits
 const IV_LENGTH = 16; // 128 bits
 const SALT_LENGTH = 16;
-const TAG_LENGTH = 16;
 const ITERATIONS = 100000;
 
 /**
@@ -22,7 +21,7 @@ function deriveKey(password: string, salt: Buffer): Buffer {
  */
 export function encryptUserId(
   userId: string,
-  password: string = process.env.WORKOS_COOKIE_PASSWORD!,
+  password: string = process.env.WORKOS_COOKIE_PASSWORD!
 ): string {
   if (!password) {
     throw new Error("WORKOS_COOKIE_PASSWORD environment variable is not set");
