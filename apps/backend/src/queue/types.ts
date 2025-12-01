@@ -11,6 +11,7 @@ export interface QueueMessage {
   problemId: string;
   step: GenerationStep;
   model: string;
+  returnDummy?: boolean;
 }
 
 // Step order for sequential execution

@@ -80,6 +80,7 @@ async function enqueueFirstStepIfAuto(
   problemId: string,
   model?: string,
   autoGenerate: boolean = true,
+  returnDummy?: boolean,
 ): Promise<string | null> {
   if (!autoGenerate) return null;
 
@@ -95,6 +96,7 @@ async function enqueueFirstStepIfAuto(
       problemId,
       step: firstStep,
       model,
+      returnDummy,
     });
   }
 
@@ -108,6 +110,7 @@ async function enqueueNextStepIfEnabled(
   currentStep: GenerationStep,
   model?: string,
   enqueueNextStep: boolean = true,
+  returnDummy?: boolean,
 ): Promise<string | null> {
   if (!enqueueNextStep) return null;
 
@@ -147,6 +150,7 @@ async function enqueueNextStepIfEnabled(
       problemId,
       step: nextStep,
       model,
+      returnDummy,
     });
   }
 
@@ -210,6 +214,7 @@ problems.openapi(createProblemRoute, async (c) => {
     problemId,
     body.model,
     autoGenerate,
+    body.returnDummy,
   );
 
   return c.json({ success: true as const, data: { problemId, jobId } }, 200);
@@ -234,6 +239,7 @@ problems.openapi(generateProblemTextRoute, async (c) => {
     body.model,
     userId,
     body.forceError,
+    body.returnDummy,
   );
 
   const enqueueNext = body.enqueueNextStep !== false;
@@ -243,6 +249,7 @@ problems.openapi(generateProblemTextRoute, async (c) => {
     "generateProblemText",
     body.model,
     enqueueNext,
+    body.returnDummy,
   );
 
   return c.json({ success: true as const, data: { ...result, jobId } }, 200);
@@ -293,6 +300,7 @@ problems.openapi(generateTestCasesRoute, async (c) => {
     body.model,
     userId,
     body.forceError,
+    body.returnDummy,
   );
 
   const enqueueNext = body.enqueueNextStep !== false;
@@ -302,6 +310,7 @@ problems.openapi(generateTestCasesRoute, async (c) => {
     "generateTestCases",
     body.model,
     enqueueNext,
+    body.returnDummy,
   );
 
   return c.json(
@@ -372,6 +381,7 @@ problems.openapi(generateInputCodeRoute, async (c) => {
     body.model,
     userId,
     body.forceError,
+    body.returnDummy,
   );
 
   const enqueueNext = body.enqueueNextStep !== false;
@@ -381,6 +391,7 @@ problems.openapi(generateInputCodeRoute, async (c) => {
     "generateTestCaseInputCode",
     body.model,
     enqueueNext,
+    body.returnDummy,
   );
 
   return c.json(
@@ -449,6 +460,7 @@ problems.openapi(generateInputsRoute, async (c) => {
     "generateTestCaseInputs",
     body?.model,
     enqueueNext,
+    undefined,
   );
 
   return c.json(
@@ -526,6 +538,7 @@ problems.openapi(generateSolutionRoute, async (c) => {
     userId,
     updateProblemInDb,
     body.forceError,
+    body.returnDummy,
   );
 
   const enqueueNext = body.enqueueNextStep !== false;
@@ -535,6 +548,7 @@ problems.openapi(generateSolutionRoute, async (c) => {
     "generateSolution",
     body.model,
     enqueueNext,
+    body.returnDummy,
   );
 
   return c.json(
@@ -615,6 +629,7 @@ problems.openapi(generateOutputsRoute, async (c) => {
     "generateTestCaseOutputs",
     body?.model,
     enqueueNext,
+    undefined,
   );
 
   return c.json(

@@ -18,6 +18,11 @@ export const ProblemSchema = z
 export const CreateProblemRequestSchema = z
   .object({
     model: z.string().min(1).openapi({ example: "claude-3-5-sonnet-20241022" }),
+    returnDummy: z.boolean().optional().openapi({
+      description:
+        "If true, return dummy data matching the expected schema instead of calling generateObject",
+      example: false,
+    }),
   })
   .openapi("CreateProblemRequest");
 
@@ -31,6 +36,11 @@ export const GenerateRequestSchema = z
     }),
     forceError: z.boolean().optional().openapi({
       description: "If true, throw an error instead of calling generateObject",
+      example: false,
+    }),
+    returnDummy: z.boolean().optional().openapi({
+      description:
+        "If true, return dummy data matching the expected schema instead of calling generateObject",
       example: false,
     }),
   })

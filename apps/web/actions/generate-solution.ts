@@ -13,10 +13,11 @@ export async function generateSolution(
   updateProblem: boolean = true,
   enqueueNextStep: boolean = true,
   forceError?: boolean,
+  returnDummy?: boolean,
 ) {
   const data = await apiPost<SolutionGenerateResponse>(
     `/${problemId}/solution/generate`,
-    { model, updateProblem, enqueueNextStep, forceError },
+    { model, updateProblem, enqueueNextStep, forceError, returnDummy },
     encryptedUserId,
   );
   return data.solution;

@@ -19,7 +19,7 @@ export async function handleQueueBatch(
 ): Promise<void> {
   try {
     for (const message of batch.messages) {
-      const { jobId, problemId, step, model } = message.body;
+      const { jobId, problemId, step, model, returnDummy } = message.body;
 
       console.log(`[Queue] Processing ${step} for problem ${problemId}`);
 
@@ -28,7 +28,7 @@ export async function handleQueueBatch(
         await updateJobStatus(jobId, "in_progress", step);
 
         // Execute the step
-        await executeStep(step, problemId, env, model);
+        await executeStep(step, problemId, env, model, returnDummy);
 
         // Mark step complete
         await markStepComplete(jobId, step);
@@ -41,6 +41,7 @@ export async function handleQueueBatch(
             problemId,
             step: nextStep,
             model,
+            returnDummy,
           });
           console.log(`[Queue] Enqueued ${nextStep} for problem ${problemId}`);
         } else {
@@ -71,6 +72,7 @@ async function executeStep(
   problemId: string,
   env: Env,
   model: string,
+  returnDummy?: boolean,
 ): Promise<void> {
   if (!model) {
     throw new Error("Model is required for generation steps");
@@ -87,13 +89,19 @@ async function executeStep(
 
   switch (step) {
     case "generateProblemText":
-      await generateProblemText(problemId, model, userId);
+      await generateProblemText(problemId, model, userId, false, returnDummy);
       break;
     case "generateTestCases":
-      await generateTestCases(problemId, model, userId);
+      await generateTestCases(problemId, model, userId, false, returnDummy);
       break;
     case "generateTestCaseInputCode":
-      await generateTestCaseInputCode(problemId, model, userId);
+      await generateTestCaseInputCode(
+        problemId,
+        model,
+        userId,
+        false,
+        returnDummy,
+      );
       break;
     case "generateTestCaseInputs":
       await generateTestCaseInputs(
@@ -102,7 +110,14 @@ async function executeStep(
       );
       break;
     case "generateSolution":
-      await generateSolution(problemId, model, userId);
+      await generateSolution(
+        problemId,
+        model,
+        userId,
+        true,
+        false,
+        returnDummy,
+      );
       break;
     case "generateTestCaseOutputs":
       await generateTestCaseOutputs(

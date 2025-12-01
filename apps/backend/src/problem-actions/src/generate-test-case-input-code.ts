@@ -9,6 +9,7 @@ export async function generateTestCaseInputCode(
   model: string,
   userId: string,
   forceError?: boolean,
+  returnDummy?: boolean,
 ) {
   if (forceError) {
     throw new Error("Force error: generateObject call skipped");
@@ -22,10 +23,21 @@ export async function generateTestCaseInputCode(
     );
   }
 
-  const tracedModel = getTracedClient(model, userId, problemId, model);
-  const { object } = await generateObject({
-    model: tracedModel,
-    prompt: `Generate executable ${DEFAULT_LANGUAGE} code that produces the input for test cases.
+  let object: {
+    testCaseInputs: Array<{ inputCode: string }>;
+  };
+
+  if (returnDummy) {
+    object = {
+      testCaseInputs: testCases.map(() => ({
+        inputCode: "function generateTestInput() { return [[1, 2, 3]]; }",
+      })),
+    };
+  } else {
+    const tracedModel = getTracedClient(model, userId, problemId, model);
+    const result = await generateObject({
+      model: tracedModel,
+      prompt: `Generate executable ${DEFAULT_LANGUAGE} code that produces the input for test cases.
 
 Problem: ${problemText}
 
@@ -59,23 +71,25 @@ function generateTestInput() {
 
 DO NOT INCLUDE ANYTHING BUT THE FUNCTION DEFINITION.
 `,
-    schema: z.object({
-      testCaseInputs: z
-        .array(
-          z.object({
-            inputCode: z
-              .string()
-              .describe(
-                `Executable ${DEFAULT_LANGUAGE} code that produces the test case input. NO COMMENTS OR OTHER TEXT. JUST THE CODE. DO NOT RETURN CONSTANTS YOURSELF, GENERATE CODE TO GENERATE THE CONSTANTS.`,
-              ),
-          }),
-        )
-        .describe(
-          "An array of input code for each test case, in the same order as the test cases",
-        )
-        .length(testCases.length),
-    }),
-  });
+      schema: z.object({
+        testCaseInputs: z
+          .array(
+            z.object({
+              inputCode: z
+                .string()
+                .describe(
+                  `Executable ${DEFAULT_LANGUAGE} code that produces the test case input. NO COMMENTS OR OTHER TEXT. JUST THE CODE. DO NOT RETURN CONSTANTS YOURSELF, GENERATE CODE TO GENERATE THE CONSTANTS.`,
+                ),
+            }),
+          )
+          .describe(
+            "An array of input code for each test case, in the same order as the test cases",
+          )
+          .length(testCases.length),
+      }),
+    });
+    object = result.object;
+  }
 
   const inputCodes: string[] = [];
   for (let index = 0; index < testCases.length; index++) {

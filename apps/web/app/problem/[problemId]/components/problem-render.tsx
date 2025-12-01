@@ -58,6 +58,7 @@ export default function ProblemRender({
   const [language, _setLanguage] = useState<string>("typescript");
   const [selectedModel, setSelectedModel] = useState<string>("");
   const [autoEnqueue, setAutoEnqueue] = useState<boolean>(false);
+  const [returnDummy, setReturnDummy] = useState<boolean>(false);
 
   const {
     isLoading: isProblemTextLoading,
@@ -291,6 +292,23 @@ export default function ProblemRender({
                 Auto-enqueue next step
               </Label>
             </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="return-dummy"
+                checked={returnDummy}
+                onCheckedChange={(checked) =>
+                  setReturnDummy(
+                    checked === true || checked === "indeterminate",
+                  )
+                }
+              />
+              <Label
+                htmlFor="return-dummy"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Return dummy data
+              </Label>
+            </div>
             {generationError && (
               <Alert variant="destructive">
                 <AlertTitle>Generation Error</AlertTitle>
@@ -303,7 +321,12 @@ export default function ProblemRender({
                   <Button
                     variant={"outline"}
                     onClick={() =>
-                      callGenerateProblemText(selectedModel, false, autoEnqueue)
+                      callGenerateProblemText(
+                        selectedModel,
+                        false,
+                        autoEnqueue,
+                        returnDummy,
+                      )
                     }
                     disabled={!selectedModel}
                   >
@@ -312,7 +335,12 @@ export default function ProblemRender({
                   <Button
                     variant={"outline"}
                     onClick={() =>
-                      callGenerateProblemText(selectedModel, true, autoEnqueue)
+                      callGenerateProblemText(
+                        selectedModel,
+                        true,
+                        autoEnqueue,
+                        returnDummy,
+                      )
                     }
                     disabled={!selectedModel}
                   >
@@ -367,7 +395,12 @@ export default function ProblemRender({
                   <Button
                     variant={"outline"}
                     onClick={() =>
-                      callGenerateTestCases(selectedModel, false, autoEnqueue)
+                      callGenerateTestCases(
+                        selectedModel,
+                        false,
+                        autoEnqueue,
+                        returnDummy,
+                      )
                     }
                     disabled={!selectedModel}
                   >
@@ -377,7 +410,12 @@ export default function ProblemRender({
                   <Button
                     variant={"outline"}
                     onClick={() =>
-                      callGenerateTestCases(selectedModel, true, autoEnqueue)
+                      callGenerateTestCases(
+                        selectedModel,
+                        true,
+                        autoEnqueue,
+                        returnDummy,
+                      )
                     }
                     disabled={!selectedModel}
                   >
@@ -430,6 +468,7 @@ export default function ProblemRender({
                         selectedModel,
                         false,
                         autoEnqueue,
+                        returnDummy,
                       )
                     }
                     disabled={!selectedModel}
@@ -444,6 +483,7 @@ export default function ProblemRender({
                         selectedModel,
                         true,
                         autoEnqueue,
+                        returnDummy,
                       )
                     }
                     disabled={!selectedModel}
@@ -545,6 +585,7 @@ export default function ProblemRender({
                         undefined,
                         autoEnqueue,
                         false,
+                        returnDummy,
                       )
                     }
                   >
@@ -558,6 +599,7 @@ export default function ProblemRender({
                         undefined,
                         autoEnqueue,
                         true,
+                        returnDummy,
                       )
                     }
                   >

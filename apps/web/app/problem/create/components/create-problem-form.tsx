@@ -31,6 +31,7 @@ export default function CreateProblemForm({
   const [isCreating, setIsCreating] = useState(false);
   const [isLoadingModels, setIsLoadingModels] = useState(true);
   const [autoGenerate, setAutoGenerate] = useState<boolean>(true);
+  const [returnDummy, setReturnDummy] = useState<boolean>(false);
 
   useEffect(() => {
     async function loadModels() {
@@ -89,6 +90,7 @@ export default function CreateProblemForm({
         modelToUse,
         encryptedUserId,
         autoGenerate,
+        returnDummy,
       );
       router.push(`/problem/${problemId}`);
     } catch (error) {
@@ -158,6 +160,23 @@ export default function CreateProblemForm({
             className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
           >
             Auto-enqueue next step
+          </Label>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="return-dummy"
+            checked={returnDummy}
+            onCheckedChange={(checked) =>
+              setReturnDummy(checked === true || checked === "indeterminate")
+            }
+            disabled={isCreating}
+          />
+          <Label
+            htmlFor="return-dummy"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
+            Return dummy data
           </Label>
         </div>
 

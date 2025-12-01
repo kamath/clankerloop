@@ -49,11 +49,13 @@ export function useProblemText(
       model,
       enqueueNextStep,
       forceError,
+      returnDummy,
     }: {
       id: string;
       model: string;
       enqueueNextStep?: boolean;
       forceError?: boolean;
+      returnDummy?: boolean;
     }) => {
       const result = await generateProblemText(
         id,
@@ -61,6 +63,7 @@ export function useProblemText(
         encryptedUserId,
         enqueueNextStep ?? true,
         forceError,
+        returnDummy,
       );
       queryClient.setQueryData(queryKey, result);
       return result;
@@ -81,6 +84,7 @@ export function useProblemText(
     model: string,
     forceError?: boolean,
     enqueueNextStep?: boolean,
+    returnDummy?: boolean,
   ) => {
     if (!problemId) throw new Error("Problem ID is not set");
     return generateMutation.mutateAsync({
@@ -88,6 +92,7 @@ export function useProblemText(
       model,
       enqueueNextStep,
       forceError,
+      returnDummy,
     });
   };
 
@@ -122,11 +127,13 @@ export function useTestCases(
       model,
       enqueueNextStep,
       forceError,
+      returnDummy,
     }: {
       id: string;
       model: string;
       enqueueNextStep?: boolean;
       forceError?: boolean;
+      returnDummy?: boolean;
     }) => {
       const result = await generateTestCases(
         id,
@@ -134,6 +141,7 @@ export function useTestCases(
         encryptedUserId,
         enqueueNextStep ?? true,
         forceError,
+        returnDummy,
       );
       queryClient.setQueryData(queryKey, result);
       return result;
@@ -154,6 +162,7 @@ export function useTestCases(
     model: string,
     forceError?: boolean,
     enqueueNextStep?: boolean,
+    returnDummy?: boolean,
   ) => {
     if (!problemId) throw new Error("Problem ID is not set");
     return generateMutation.mutateAsync({
@@ -161,6 +170,7 @@ export function useTestCases(
       model,
       enqueueNextStep,
       forceError,
+      returnDummy,
     });
   };
 
@@ -195,11 +205,13 @@ export function useTestCaseInputCode(
       model,
       enqueueNextStep,
       forceError,
+      returnDummy,
     }: {
       id: string;
       model: string;
       enqueueNextStep?: boolean;
       forceError?: boolean;
+      returnDummy?: boolean;
     }) => {
       const result = await generateTestCaseInputCode(
         id,
@@ -207,6 +219,7 @@ export function useTestCaseInputCode(
         encryptedUserId,
         enqueueNextStep ?? true,
         forceError,
+        returnDummy,
       );
       queryClient.setQueryData(queryKey, result);
       return result;
@@ -227,6 +240,7 @@ export function useTestCaseInputCode(
     model: string,
     forceError?: boolean,
     enqueueNextStep?: boolean,
+    returnDummy?: boolean,
   ) => {
     if (!problemId) throw new Error("Problem ID is not set");
     return generateMutation.mutateAsync({
@@ -234,6 +248,7 @@ export function useTestCaseInputCode(
       model,
       enqueueNextStep,
       forceError,
+      returnDummy,
     });
   };
 
@@ -330,12 +345,14 @@ export function useSolution(
       updateProblem,
       enqueueNextStep,
       forceError,
+      returnDummy,
     }: {
       id: string;
       model: string;
       updateProblem?: boolean;
       enqueueNextStep?: boolean;
       forceError?: boolean;
+      returnDummy?: boolean;
     }) => {
       const result = await generateSolution(
         id,
@@ -344,6 +361,7 @@ export function useSolution(
         updateProblem,
         enqueueNextStep,
         forceError,
+        returnDummy,
       );
       queryClient.setQueryData(queryKey, result);
       return result;
@@ -365,6 +383,7 @@ export function useSolution(
     updateProblem?: boolean,
     enqueueNextStep?: boolean,
     forceError?: boolean,
+    returnDummy?: boolean,
   ) => {
     if (!problemId) throw new Error("Problem ID is not set");
     return generateMutation.mutateAsync({
@@ -373,6 +392,7 @@ export function useSolution(
       updateProblem,
       enqueueNextStep,
       forceError,
+      returnDummy,
     });
   };
 
@@ -396,12 +416,14 @@ export function useGenerateSolutionWithModel(
       updateProblem,
       enqueueNextStep,
       forceError,
+      returnDummy,
     }: {
       id: string;
       model: string;
       updateProblem?: boolean;
       enqueueNextStep?: boolean;
       forceError?: boolean;
+      returnDummy?: boolean;
     }) => {
       return await generateSolution(
         id,
@@ -410,6 +432,7 @@ export function useGenerateSolutionWithModel(
         updateProblem,
         enqueueNextStep,
         forceError,
+        returnDummy,
       );
     },
   });
@@ -419,6 +442,7 @@ export function useGenerateSolutionWithModel(
     updateProblem?: boolean,
     enqueueNextStep?: boolean,
     forceError?: boolean,
+    returnDummy?: boolean,
   ) => {
     if (!problemId) throw new Error("Problem ID is not set");
     return generateMutation.mutateAsync({
@@ -427,6 +451,7 @@ export function useGenerateSolutionWithModel(
       updateProblem,
       enqueueNextStep,
       forceError,
+      returnDummy,
     });
   };
 

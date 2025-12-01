@@ -10,6 +10,7 @@ export async function generateSolution(
   userId: string,
   updateProblemInDb: boolean = true,
   forceError?: boolean,
+  returnDummy?: boolean,
 ) {
   if (forceError) {
     throw new Error("Force error: generateObject call skipped");
@@ -23,10 +24,18 @@ export async function generateSolution(
     );
   }
 
-  const tracedModel = getTracedClient(model, userId, problemId, model);
-  const { object } = await generateObject({
-    model: tracedModel,
-    prompt: `Generate executable ${DEFAULT_LANGUAGE} code that solves the following problem.
+  let object: { solution: string };
+
+  if (returnDummy) {
+    object = {
+      solution:
+        "function runSolution(nums: number[]): number { return nums.reduce((a, b) => a + b, 0); }",
+    };
+  } else {
+    const tracedModel = getTracedClient(model, userId, problemId, model);
+    const result = await generateObject({
+      model: tracedModel,
+      prompt: `Generate executable ${DEFAULT_LANGUAGE} code that solves the following problem.
 
 Problem: ${problemText}
 
@@ -40,14 +49,16 @@ Generate code that passes all the test cases.
 THE FUNCTION NAME MUST BE runSolution.
 DO NOT INCLUDE ANYTHING BUT THE FUNCTION DEFINITION.
 `,
-    schema: z.object({
-      solution: z
-        .string()
-        .describe(
-          `Executable ${DEFAULT_LANGUAGE} code that solves the problem. NO COMMENTS OR OTHER TEXT. JUST THE CODE. DO NOT RETURN CONSTANTS YOURSELF, GENERATE CODE TO GENERATE THE CONSTANTS.`,
-        ),
-    }),
-  });
+      schema: z.object({
+        solution: z
+          .string()
+          .describe(
+            `Executable ${DEFAULT_LANGUAGE} code that solves the problem. NO COMMENTS OR OTHER TEXT. JUST THE CODE. DO NOT RETURN CONSTANTS YOURSELF, GENERATE CODE TO GENERATE THE CONSTANTS.`,
+          ),
+      }),
+    });
+    object = result.object;
+  }
 
   const solution = object.solution;
 
