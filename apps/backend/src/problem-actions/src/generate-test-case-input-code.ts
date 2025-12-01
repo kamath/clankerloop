@@ -24,32 +24,34 @@ export async function generateTestCaseInputCode(
     );
   }
 
-  let object: {
-    testCaseInputs: Array<{ inputCode: string }>;
-  };
+  const tracedModel = getTracedClient(model, userId, problemId, model, env);
+  const inputCodes: string[] = [];
 
-  if (returnDummy) {
-    object = {
-      testCaseInputs: testCases.map(() => ({
-        inputCode: "function generateTestInput() { return [[1, 2, 3]]; }",
-      })),
-    };
-  } else {
-    const tracedModel = getTracedClient(model, userId, problemId, model, env);
-    const result = await generateObject({
-      model: tracedModel,
-      prompt: `Generate executable ${DEFAULT_LANGUAGE} code that produces the input for test cases.
+  for (let index = 0; index < testCases.length; index++) {
+    const testCase = testCases[index];
+    if (!testCase) {
+      throw new Error(`Test case at index ${index} is undefined`);
+    }
+
+    let inputCode: string;
+
+    if (returnDummy) {
+      inputCode = "function generateTestInput() { return [[1, 2, 3]]; }";
+    } else {
+      const result = await generateObject({
+        model: tracedModel,
+        prompt: `Generate executable ${DEFAULT_LANGUAGE} code that produces the input for a test case.
 
 Problem: ${problemText}
 
 Function Signature (${DEFAULT_LANGUAGE}):
 ${functionSignature}
 
-Test Cases:
-${testCases.map((tc: TestCase, i: number) => `${i + 1}. ${tc.description}${tc.isEdgeCase ? " (edge case)" : ""}`).join("\n")}
+Test Case:
+${testCase.description}${testCase.isEdgeCase ? " (edge case)" : ""}
 
-For each test case, generate a ${DEFAULT_LANGUAGE} function generateTestInput()
-that creates the input value(s) described in the test case description
+Generate a ${DEFAULT_LANGUAGE} function generateTestInput()
+that creates the input value(s) described in the test case description.
 
 The function should only generate the INPUT, not execute the solution function.
 The output of the function should be an ARRAY, where each element is an argument to the solution function.
@@ -62,7 +64,6 @@ and the description is "an array of numbers with length 3 and an odd number",
 
 the function should return: [[1, 2, 3, 4, 5], 3]
 
-Generate code for each test case in order.
 AVOID COMING UP WITH CONSTANTS!! For example, if asked for an array of numbers, generate code to generate random numbers instead of coming up with a specific array.
 
 Return a function like the following, where ...inputValues is the array of input values for the test case:
@@ -72,38 +73,23 @@ function generateTestInput() {
 
 DO NOT INCLUDE ANYTHING BUT THE FUNCTION DEFINITION.
 `,
-      schema: z.object({
-        testCaseInputs: z
-          .array(
-            z.object({
-              inputCode: z
-                .string()
-                .describe(
-                  `Executable ${DEFAULT_LANGUAGE} code that produces the test case input. NO COMMENTS OR OTHER TEXT. JUST THE CODE. DO NOT RETURN CONSTANTS YOURSELF, GENERATE CODE TO GENERATE THE CONSTANTS.`,
-                ),
-            }),
-          )
-          .describe(
-            "An array of input code for each test case, in the same order as the test cases",
-          )
-          .length(testCases.length),
-      }),
-    });
-    object = result.object;
-  }
-
-  const inputCodes: string[] = [];
-  for (let index = 0; index < testCases.length; index++) {
-    const testCase = testCases[index];
-    if (!testCase) {
-      throw new Error(`Test case at index ${index} is undefined`);
+        schema: z.object({
+          inputCode: z
+            .string()
+            .describe(
+              `Executable ${DEFAULT_LANGUAGE} code that produces the test case input. NO COMMENTS OR OTHER TEXT. JUST THE CODE. DO NOT RETURN CONSTANTS YOURSELF, GENERATE CODE TO GENERATE THE CONSTANTS.`,
+            ),
+        }),
+      });
+      inputCode = result.object.inputCode;
     }
-    const inputCode = object.testCaseInputs[index]?.inputCode;
+
     if (!inputCode) {
       throw new Error(
         `Failed to generate input code for test case ${index + 1}`,
       );
     }
+
     await updateTestCase(testCase.id, { inputCode });
     inputCodes.push(inputCode);
   }
