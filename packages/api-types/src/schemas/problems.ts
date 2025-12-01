@@ -10,6 +10,8 @@ export const ProblemSchema = z
     solution: z.string().nullable(),
     generatedByModelId: z.string().uuid().nullable(),
     generatedByUserId: z.string().nullable(),
+    easierThan: z.string().uuid().nullable(),
+    harderThan: z.string().uuid().nullable(),
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),
   })
@@ -23,6 +25,14 @@ export const CreateProblemRequestSchema = z
       description:
         "If true, return dummy data matching the expected schema instead of calling generateObject",
       example: false,
+    }),
+    easierThan: z.string().uuid().optional().openapi({
+      description: "ID of the problem this is easier than",
+      example: "123e4567-e89b-12d3-a456-426614174000",
+    }),
+    harderThan: z.string().uuid().optional().openapi({
+      description: "ID of the problem this is harder than",
+      example: "123e4567-e89b-12d3-a456-426614174000",
     }),
   })
   .openapi("CreateProblemRequest");

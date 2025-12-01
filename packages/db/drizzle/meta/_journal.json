@@ -57,6 +57,13 @@
       "when": 1764619566960,
       "tag": "0007_acoustic_thaddeus_ross",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1764621709194,
+      "tag": "0008_fat_vanisher",
+      "breakpoints": true
     }
   ]
 }

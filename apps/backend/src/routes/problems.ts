@@ -202,7 +202,25 @@ problems.openapi(createProblemRoute, async (c) => {
   const body = c.req.valid("json");
   const query = c.req.valid("query");
 
-  const problemId = await createProblem({ generatedByUserId: userId });
+  // Validate that only one of easierThan or harderThan is set
+  if (body.easierThan && body.harderThan) {
+    return c.json(
+      {
+        success: false as const,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Cannot set both easierThan and harderThan",
+        },
+      },
+      400,
+    );
+  }
+
+  const problemId = await createProblem({
+    generatedByUserId: userId,
+    easierThan: body.easierThan ?? null,
+    harderThan: body.harderThan ?? null,
+  });
 
   // Get or create model and update problem
   const modelId = await getOrCreateModel(body.model);

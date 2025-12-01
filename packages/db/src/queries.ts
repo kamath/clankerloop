@@ -99,6 +99,8 @@ export async function createProblem(
       problemTextReworded: data?.problemTextReworded ?? "",
       solution: data?.solution ?? "",
       generatedByUserId: data?.generatedByUserId,
+      easierThan: data?.easierThan ?? null,
+      harderThan: data?.harderThan ?? null,
     })
     .returning({ id: problems.id });
 

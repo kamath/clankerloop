@@ -27,10 +27,12 @@ import {
 } from "@/hooks/use-problem";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ClientFacingUserObject } from "@/lib/auth-types";
 import { signOutAction } from "@/app/(auth)/signout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
+import { createProblem } from "@/actions/create-problem";
 import {
   Select,
   SelectContent,
@@ -53,12 +55,14 @@ export default function ProblemRender({
   problemId: string;
   user: ClientFacingUserObject;
 }) {
+  const router = useRouter();
   const [userSolution, setUserSolution] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [language, _setLanguage] = useState<string>("typescript");
   const [selectedModel, setSelectedModel] = useState<string>("");
   const [autoEnqueue, setAutoEnqueue] = useState<boolean>(false);
   const [returnDummy, setReturnDummy] = useState<boolean>(false);
+  const [isCreatingVariant, setIsCreatingVariant] = useState<boolean>(false);
 
   const {
     isLoading: isProblemTextLoading,
@@ -246,7 +250,59 @@ export default function ProblemRender({
             <Button variant={"outline"} className="hover:cursor-pointer">
               Problems
             </Button>
-          </Link>{" "}
+          </Link>
+          <Button
+            variant={"outline"}
+            className="hover:cursor-pointer"
+            disabled={isCreatingVariant || !problemModel}
+            onClick={async () => {
+              if (!problemModel) return;
+              setIsCreatingVariant(true);
+              try {
+                const { problemId: newProblemId } = await createProblem(
+                  problemModel,
+                  user.apiKey,
+                  true,
+                  false,
+                  problemId,
+                  undefined
+                );
+                router.push(`/problem/${newProblemId}`);
+              } catch (error) {
+                console.error("Failed to create easier problem:", error);
+                alert("Failed to create easier problem. Please try again.");
+                setIsCreatingVariant(false);
+              }
+            }}
+          >
+            {isCreatingVariant ? "Creating..." : "Make Easier"}
+          </Button>
+          <Button
+            variant={"outline"}
+            className="hover:cursor-pointer"
+            disabled={isCreatingVariant || !problemModel}
+            onClick={async () => {
+              if (!problemModel) return;
+              setIsCreatingVariant(true);
+              try {
+                const { problemId: newProblemId } = await createProblem(
+                  problemModel,
+                  user.apiKey,
+                  true,
+                  false,
+                  undefined,
+                  problemId
+                );
+                router.push(`/problem/${newProblemId}`);
+              } catch (error) {
+                console.error("Failed to create harder problem:", error);
+                alert("Failed to create harder problem. Please try again.");
+                setIsCreatingVariant(false);
+              }
+            }}
+          >
+            {isCreatingVariant ? "Creating..." : "Make Harder"}
+          </Button>
           <form
             action={async () => {
               await signOutAction();

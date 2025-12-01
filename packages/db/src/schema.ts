@@ -22,6 +22,8 @@ export const problems = pgTable("problems", {
   solution: text("solution"),
   generatedByModelId: uuid("generated_by_model_id").references(() => models.id),
   generatedByUserId: text("generated_by_user_id").notNull(),
+  easierThan: uuid("easier_than"),
+  harderThan: uuid("harder_than"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -50,6 +52,16 @@ export const problemsRelations = relations(problems, ({ many, one }) => ({
   generatedByModel: one(models, {
     fields: [problems.generatedByModelId],
     references: [models.id],
+  }),
+  easierThanProblem: one(problems, {
+    fields: [problems.easierThan],
+    references: [problems.id],
+    relationName: "easier_than",
+  }),
+  harderThanProblem: one(problems, {
+    fields: [problems.harderThan],
+    references: [problems.id],
+    relationName: "harder_than",
   }),
 }));
 
