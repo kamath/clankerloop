@@ -487,7 +487,7 @@ problems.openapi(generateInputCodeRoute, async (c) => {
   }
 
   const userId = problem.generatedByUserId || "unknown";
-  
+
   // Generate test case input code
   const inputCodesResult = await generateTestCaseInputCode(
     problemId,
@@ -708,7 +708,7 @@ problems.openapi(generateSolutionRoute, async (c) => {
 
   const userId = problem.generatedByUserId || "unknown";
   const updateProblemInDb = body.updateProblem !== false;
-  
+
   // Generate solution
   const solutionResult = await generateSolution(
     problemId,
@@ -813,11 +813,7 @@ problems.openapi(generateOutputsRoute, async (c) => {
       (tc) => tc.expected !== null && tc.expected !== undefined,
     );
   if (
-    await shouldReturnIdempotentError(
-      problemId,
-      "generateSolution",
-      dataExists,
-    )
+    await shouldReturnIdempotentError(problemId, "generateSolution", dataExists)
   ) {
     return c.json(
       {

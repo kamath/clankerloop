@@ -166,7 +166,8 @@ export const generateProblemTextRoute = createRoute({
     },
     409: {
       content: { "application/json": { schema: ApiErrorSchema } },
-      description: "Problem text already exists and generation step has completed or is in progress",
+      description:
+        "Problem text already exists and generation step has completed or is in progress",
     },
   },
   security: [{ ApiKeyAuth: [] }],
@@ -226,7 +227,8 @@ export const generateTestCasesRoute = createRoute({
     },
     409: {
       content: { "application/json": { schema: ApiErrorSchema } },
-      description: "Test cases already exist and generation step has completed or is in progress",
+      description:
+        "Test cases already exist and generation step has completed or is in progress",
     },
   },
   security: [{ ApiKeyAuth: [] }],
@@ -290,7 +292,8 @@ export const generateInputCodeRoute = createRoute({
     },
     409: {
       content: { "application/json": { schema: ApiErrorSchema } },
-      description: "Test case input code already exists and generation step has completed or is in progress",
+      description:
+        "Test case input code already exists and generation step has completed or is in progress",
     },
   },
   security: [{ ApiKeyAuth: [] }],
@@ -354,7 +357,8 @@ export const generateInputsRoute = createRoute({
     },
     409: {
       content: { "application/json": { schema: ApiErrorSchema } },
-      description: "Test case inputs already exist and generation step has completed or is in progress",
+      description:
+        "Test case inputs already exist and generation step has completed or is in progress",
     },
   },
   security: [{ ApiKeyAuth: [] }],
@@ -418,7 +422,8 @@ export const generateSolutionRoute = createRoute({
     },
     409: {
       content: { "application/json": { schema: ApiErrorSchema } },
-      description: "Solution already exists and generation step has completed or is in progress",
+      description:
+        "Solution already exists and generation step has completed or is in progress",
     },
   },
   security: [{ ApiKeyAuth: [] }],
@@ -514,7 +519,8 @@ export const generateOutputsRoute = createRoute({
     },
     409: {
       content: { "application/json": { schema: ApiErrorSchema } },
-      description: "Test case outputs already exist and generation step has completed or is in progress",
+      description:
+        "Test case outputs already exist and generation step has completed or is in progress",
     },
   },
   security: [{ ApiKeyAuth: [] }],
