@@ -48,6 +48,7 @@ import {
 } from "@/components/ui/select";
 import { useQueryClient } from "@tanstack/react-query";
 import type { GenerationStep } from "@/hooks/use-problem";
+import { getStarterCode } from "@/actions/get-starter-code";
 import {
   Collapsible,
   CollapsibleContent,
@@ -93,7 +94,6 @@ export default function ProblemRender({
     isLoading: isStarterCodeLoading,
     error: starterCodeError,
     data: starterCode,
-    getData: getStarterCode,
   } = useStarterCode(problemId, language, user.apiKey);
 
   useEffect(() => {
@@ -102,10 +102,25 @@ export default function ProblemRender({
 
   // Fetch starter code when problem text is available and language changes
   useEffect(() => {
-    if (problemText?.functionSignatureSchema) {
-      getStarterCode();
+    if (problemText?.functionSignatureSchema && problemId) {
+      queryClient
+        .fetchQuery({
+          queryKey: ["starterCode", problemId, language],
+          queryFn: () => getStarterCode(problemId, language, user.apiKey),
+          staleTime: Infinity,
+        })
+        .catch((error) => {
+          // Silently handle errors - they'll be shown via the query state
+          console.error("Failed to fetch starter code:", error);
+        });
     }
-  }, [problemText?.functionSignatureSchema, language, getStarterCode]);
+  }, [
+    problemText?.functionSignatureSchema,
+    language,
+    problemId,
+    queryClient,
+    user.apiKey,
+  ]);
 
   // Set user solution when starter code is fetched
   useEffect(() => {
