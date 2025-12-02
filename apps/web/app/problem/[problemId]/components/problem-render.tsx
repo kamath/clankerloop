@@ -190,10 +190,12 @@ export default function ProblemRender({
     hasData: boolean,
   ): StepStatus => {
     if (error) return "error";
-    // If step is currently being generated, show "pending" instead of "loading"
+    // Prioritize "loading" when data is actively being fetched
+    // This ensures loading indicators show correctly during data fetching
+    if (isLoading) return "loading";
+    // If step is currently being generated but not actively fetching, show "pending"
     // This prevents oscillation between pending and loading during polling
     if (isGenerating && currentStep && currentStep === step) return "pending";
-    if (isLoading) return "loading";
     if (hasData || completedSteps.includes(step)) return "complete";
     return "not_started";
   };
@@ -707,7 +709,7 @@ export default function ProblemRender({
               </StepSection>
               <StepSection
                 step="generateTestCases"
-                stepIndex={1}
+                stepIndex={2}
                 title="Test Case Descriptions"
                 isLoading={isTestCasesLoading}
                 error={testCasesError}
@@ -741,7 +743,7 @@ export default function ProblemRender({
               </StepSection>
               <StepSection
                 step="generateTestCaseInputCode"
-                stepIndex={2}
+                stepIndex={3}
                 title="Test Case Input Code"
                 isLoading={isTestCaseInputsLoading}
                 error={testCaseInputCodeError}
@@ -813,7 +815,7 @@ export default function ProblemRender({
               </StepSection>
               <StepSection
                 step="generateSolution"
-                stepIndex={3}
+                stepIndex={4}
                 title="Solution"
                 isLoading={isGenerateSolutionLoading}
                 error={solutionError}
