@@ -11,7 +11,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { ClientFacingUserObject } from "@/lib/auth-types";
 import { signOutAction } from "@/app/(auth)/signout";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PlayIcon, SendIcon } from "lucide-react";
 import {
   Select,

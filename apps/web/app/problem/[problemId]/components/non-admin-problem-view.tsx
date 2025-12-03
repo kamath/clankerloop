@@ -97,6 +97,7 @@ export default function NonAdminProblemView({
   const [isLoadingFocusAreas, setIsLoadingFocusAreas] = useState(true);
   const [isRegeneratingWithFocusAreas, setIsRegeneratingWithFocusAreas] =
     useState(false);
+  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
   const [focusAreasChanged, setFocusAreasChanged] = useState(false);
 
   // Load focus areas
