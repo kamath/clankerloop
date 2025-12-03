@@ -1,6 +1,6 @@
 import { generateObject } from "ai";
 import { z } from "zod";
-import { getProblem, updateProblem } from "@repo/db";
+import { getProblem, updateProblem, type Database } from "@repo/db";
 import { getTracedClient } from "@/utils/ai";
 
 export async function generateProblemText(
@@ -8,6 +8,7 @@ export async function generateProblemText(
   model: string,
   userId: string,
   env: Env,
+  db: Database,
   forceError?: boolean,
   returnDummy?: boolean,
   baseProblem?: {
@@ -115,11 +116,15 @@ If using custom types, THEY MUST BE DEFINED INLINE -- for example,
     object = result.object;
   }
 
-  await updateProblem(problemId, {
-    problemText: object.problemText,
-    functionSignature: object.functionSignature,
-    problemTextReworded: object.problemTextReworded,
-  });
+  await updateProblem(
+    problemId,
+    {
+      problemText: object.problemText,
+      functionSignature: object.functionSignature,
+      problemTextReworded: object.problemTextReworded,
+    },
+    db,
+  );
 
   return {
     problemText: object.problemText,
@@ -129,8 +134,8 @@ If using custom types, THEY MUST BE DEFINED INLINE -- for example,
   };
 }
 
-export async function getProblemText(problemId: string) {
-  const problem = await getProblem(problemId);
+export async function getProblemText(problemId: string, db: Database) {
+  const problem = await getProblem(problemId, db);
   return {
     problemText: problem.problemText,
     functionSignature: problem.functionSignature,

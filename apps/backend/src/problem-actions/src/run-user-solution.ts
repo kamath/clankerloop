@@ -1,5 +1,5 @@
 import { Sandbox } from "./sandbox";
-import { getProblem } from "@repo/db";
+import { getProblem, type Database } from "@repo/db";
 import { getLanguageConfig, getRunnerTemplate } from "./runners";
 import type { TestResult, SupportedLanguage, CustomTestResult } from "./types";
 import { runReferenceSolutionOnInput } from "./generate-test-case-outputs";
@@ -10,9 +10,10 @@ export async function runUserSolution(
   problemId: string,
   userCode: string,
   sandbox: Sandbox,
+  db: Database,
   language: SupportedLanguage = "typescript",
 ): Promise<TestResult[]> {
-  const { testCases } = await getProblem(problemId);
+  const { testCases } = await getProblem(problemId, db);
   if (!testCases || testCases.length === 0) {
     throw new Error(
       "No test cases found. Please generate test case descriptions and inputs first.",
@@ -176,6 +177,7 @@ export async function runUserSolutionWithCustomInputs(
   userCode: string,
   customInputs: unknown[][],
   sandbox: Sandbox,
+  db: Database,
   language: SupportedLanguage = "typescript",
 ): Promise<CustomTestResult[]> {
   // Validate inputs
@@ -184,7 +186,7 @@ export async function runUserSolutionWithCustomInputs(
   }
 
   // Fetch problem to get function signature for validation and reference solution
-  const problem = await getProblem(problemId);
+  const problem = await getProblem(problemId, db);
   const schema = problem.functionSignatureSchema;
   const referenceSolution = problem.solution;
 
@@ -262,6 +264,7 @@ export async function runUserSolutionWithCustomInputs(
         problemId,
         input,
         sandbox,
+        db,
       );
 
       // Run user solution

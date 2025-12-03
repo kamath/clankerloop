@@ -1,11 +1,17 @@
 import { Sandbox } from "./sandbox";
-import { getProblem, updateTestCase, type TestCase } from "@repo/db";
+import {
+  getProblem,
+  updateTestCase,
+  type TestCase,
+  type Database,
+} from "@repo/db";
 
 export async function generateTestCaseInputs(
   problemId: string,
   sandbox: Sandbox,
+  db: Database,
 ) {
-  const { testCases } = await getProblem(problemId);
+  const { testCases } = await getProblem(problemId, db);
   if (!testCases) {
     throw new Error(
       "No code found to generate test case inputs for problem ID: " +
@@ -46,13 +52,13 @@ export async function generateTestCaseInputs(
         `Result for test case ${index + 1} is not an array, got: ${typeof result}`,
       );
     }
-    await updateTestCase(testCase.id, { input: result });
+    await updateTestCase(testCase.id, { input: result }, db);
   }
 
   return results;
 }
 
-export async function getTestCaseInputs(problemId: string) {
-  const { testCases } = await getProblem(problemId);
+export async function getTestCaseInputs(problemId: string, db: Database) {
+  const { testCases } = await getProblem(problemId, db);
   return testCases.map((testCase: TestCase) => testCase.input);
 }

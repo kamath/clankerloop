@@ -14,7 +14,12 @@ import {
   generateTestCaseOutputs,
   Sandbox,
 } from "@/problem-actions";
-import { updateJobStatus, markStepComplete, getProblem } from "@repo/db";
+import {
+  updateJobStatus,
+  markStepComplete,
+  getProblem,
+  createDb,
+} from "@repo/db";
 import { STEP_ORDER, type GenerationStep } from "../queue/types";
 import { getPostHogClient } from "@/utils/analytics";
 
@@ -38,6 +43,9 @@ export class ProblemGenerationWorkflow extends WorkflowEntrypoint<
     const { jobId, problemId, model, returnDummy, startingStep, baseProblem } =
       event.payload;
 
+    // Create database instance from environment
+    const db = createDb(this.env.DATABASE_URL);
+
     // Helper to check if step should be skipped
     const shouldRunStep = (stepName: GenerationStep) => {
       if (!startingStep) return true;
@@ -51,7 +59,7 @@ export class ProblemGenerationWorkflow extends WorkflowEntrypoint<
     };
 
     // Fetch userId from problem for tracing
-    const problem = await getProblem(problemId);
+    const problem = await getProblem(problemId, db);
     const userId = problem.generatedByUserId || "unknown";
 
     try {
@@ -61,17 +69,24 @@ export class ProblemGenerationWorkflow extends WorkflowEntrypoint<
           console.log(
             `[Workflow] Processing generateProblemText for problem ${problemId}`,
           );
-          await updateJobStatus(jobId, "in_progress", "generateProblemText");
+          await updateJobStatus(
+            jobId,
+            "in_progress",
+            "generateProblemText",
+            undefined,
+            db,
+          );
           await generateProblemText(
             problemId,
             model,
             userId,
             this.env,
+            db,
             false,
             returnDummy,
             baseProblem,
           );
-          await markStepComplete(jobId, "generateProblemText");
+          await markStepComplete(jobId, "generateProblemText", db);
         });
       }
 
@@ -81,16 +96,23 @@ export class ProblemGenerationWorkflow extends WorkflowEntrypoint<
           console.log(
             `[Workflow] Processing parseFunctionSignature for problem ${problemId}`,
           );
-          await updateJobStatus(jobId, "in_progress", "parseFunctionSignature");
+          await updateJobStatus(
+            jobId,
+            "in_progress",
+            "parseFunctionSignature",
+            undefined,
+            db,
+          );
           await parseFunctionSignature(
             problemId,
             model,
             userId,
             this.env,
+            db,
             false,
             returnDummy,
           );
-          await markStepComplete(jobId, "parseFunctionSignature");
+          await markStepComplete(jobId, "parseFunctionSignature", db);
         });
       }
 
@@ -100,16 +122,23 @@ export class ProblemGenerationWorkflow extends WorkflowEntrypoint<
           console.log(
             `[Workflow] Processing generateTestCases for problem ${problemId}`,
           );
-          await updateJobStatus(jobId, "in_progress", "generateTestCases");
+          await updateJobStatus(
+            jobId,
+            "in_progress",
+            "generateTestCases",
+            undefined,
+            db,
+          );
           await generateTestCases(
             problemId,
             model,
             userId,
             this.env,
+            db,
             false,
             returnDummy,
           );
-          await markStepComplete(jobId, "generateTestCases");
+          await markStepComplete(jobId, "generateTestCases", db);
         });
       }
 
@@ -123,6 +152,8 @@ export class ProblemGenerationWorkflow extends WorkflowEntrypoint<
             jobId,
             "in_progress",
             "generateTestCaseInputCode",
+            undefined,
+            db,
           );
           // Generate test case input code
           await generateTestCaseInputCode(
@@ -130,6 +161,7 @@ export class ProblemGenerationWorkflow extends WorkflowEntrypoint<
             model,
             userId,
             this.env,
+            db,
             false,
             returnDummy,
           );
@@ -137,8 +169,9 @@ export class ProblemGenerationWorkflow extends WorkflowEntrypoint<
           await generateTestCaseInputs(
             problemId,
             getSandboxInstance(`inputs-${problemId}`),
+            db,
           );
-          await markStepComplete(jobId, "generateTestCaseInputCode");
+          await markStepComplete(jobId, "generateTestCaseInputCode", db);
         });
       }
 
@@ -148,13 +181,20 @@ export class ProblemGenerationWorkflow extends WorkflowEntrypoint<
           console.log(
             `[Workflow] Processing generateSolution for problem ${problemId}`,
           );
-          await updateJobStatus(jobId, "in_progress", "generateSolution");
+          await updateJobStatus(
+            jobId,
+            "in_progress",
+            "generateSolution",
+            undefined,
+            db,
+          );
           // Generate solution
           await generateSolution(
             problemId,
             model,
             userId,
             this.env,
+            db,
             true,
             false,
             returnDummy,
@@ -163,18 +203,19 @@ export class ProblemGenerationWorkflow extends WorkflowEntrypoint<
           await generateTestCaseOutputs(
             problemId,
             getSandboxInstance(`outputs-${problemId}`),
+            db,
           );
-          await markStepComplete(jobId, "generateSolution");
+          await markStepComplete(jobId, "generateSolution", db);
         });
       }
 
       // Pipeline complete
-      await updateJobStatus(jobId, "completed");
+      await updateJobStatus(jobId, "completed", undefined, undefined, db);
       console.log(`[Workflow] Pipeline complete for problem ${problemId}`);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       console.error(`[Workflow] Error in pipeline: ${errorMsg}`);
-      await updateJobStatus(jobId, "failed", undefined, errorMsg);
+      await updateJobStatus(jobId, "failed", undefined, errorMsg, db);
       throw error; // Re-throw to let Workflows handle retry logic
     } finally {
       // Ensure PostHog events are flushed after workflow completes

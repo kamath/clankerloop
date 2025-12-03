@@ -19,6 +19,7 @@ import {
   runUserSolution,
   runUserSolutionWithCustomInputs,
   CodeGenLanguageSchema,
+  type Database,
 } from "@/problem-actions";
 import { getSandbox } from "@cloudflare/sandbox";
 import { Sandbox } from "@/problem-actions";
@@ -66,6 +67,7 @@ const problems = new OpenAPIHono<{
   Bindings: Env;
   Variables: {
     userId: string;
+    db: Database;
   };
 }>();
 
@@ -75,10 +77,13 @@ const getSandboxInstance = (env: Env, sandboxId: string): Sandbox => {
 };
 
 // Helper to get or create model
-async function getOrCreateModel(modelName: string): Promise<string> {
-  const model = await getModelByName(modelName);
+async function getOrCreateModel(
+  modelName: string,
+  db: Database,
+): Promise<string> {
+  const model = await getModelByName(modelName, db);
   if (!model) {
-    const modelId = await createModel(modelName);
+    const modelId = await createModel(modelName, db);
     return modelId;
   }
   return model.id;
@@ -89,6 +94,7 @@ async function shouldReturnIdempotentError(
   problemId: string,
   step: GenerationStep,
   dataExists: boolean,
+  db: Database,
 ): Promise<boolean> {
   // If data doesn't exist, allow generation
   if (!dataExists) {
@@ -96,7 +102,7 @@ async function shouldReturnIdempotentError(
   }
 
   // Get the latest job for the problem
-  const job = await getLatestJobForProblem(problemId);
+  const job = await getLatestJobForProblem(problemId, db);
   if (!job) {
     // No job exists, but data exists - allow regeneration
     return false;
@@ -117,7 +123,7 @@ async function shouldReturnIdempotentError(
 
 // Helper to start workflow if autoGenerate is enabled (for problem creation)
 async function startWorkflowIfAuto(
-  c: Context<{ Bindings: Env; Variables: { userId: string } }>,
+  c: Context<{ Bindings: Env; Variables: { userId: string; db: Database } }>,
   problemId: string,
   model?: string,
   autoGenerate: boolean = true,
@@ -129,9 +135,11 @@ async function startWorkflowIfAuto(
 ): Promise<string | null> {
   if (!autoGenerate) return null;
 
+  const db = c.get("db");
+
   // Create job
-  const modelId = model ? await getOrCreateModel(model) : undefined;
-  const jobId = await createGenerationJob(problemId, modelId);
+  const modelId = model ? await getOrCreateModel(model, db) : undefined;
+  const jobId = await createGenerationJob(problemId, modelId, db);
 
   // Start the workflow
   await c.env.PROBLEM_GENERATION_WORKFLOW.create({
@@ -150,7 +158,7 @@ async function startWorkflowIfAuto(
 
 // Helper to start workflow from a specific step if enqueueNextStep is enabled
 async function startWorkflowFromStepIfEnabled(
-  c: Context<{ Bindings: Env; Variables: { userId: string } }>,
+  c: Context<{ Bindings: Env; Variables: { userId: string; db: Database } }>,
   problemId: string,
   currentStep: GenerationStep,
   model?: string,
@@ -158,6 +166,8 @@ async function startWorkflowFromStepIfEnabled(
   returnDummy?: boolean,
 ): Promise<string | null> {
   if (!enqueueNextStep) return null;
+
+  const db = c.get("db");
 
   // Get the next step index
   const currentIndex = STEP_ORDER.indexOf(currentStep);
@@ -169,10 +179,10 @@ async function startWorkflowFromStepIfEnabled(
   const nextStep = STEP_ORDER[nextIndex];
 
   // Get or create job
-  let job = await getLatestJobForProblem(problemId);
+  let job = await getLatestJobForProblem(problemId, db);
   if (!job || job.status === "completed") {
-    const modelId = model ? await getOrCreateModel(model) : undefined;
-    const jobId = await createGenerationJob(problemId, modelId);
+    const modelId = model ? await getOrCreateModel(model, db) : undefined;
+    const jobId = await createGenerationJob(problemId, modelId, db);
     job = {
       id: jobId,
       problemId,
@@ -186,9 +196,9 @@ async function startWorkflowFromStepIfEnabled(
     };
   } else if (job.status === "failed") {
     // Reset failed job to pending since current step succeeded
-    await updateJobStatus(job.id, "pending", undefined, undefined);
+    await updateJobStatus(job.id, "pending", undefined, undefined, db);
     // Mark the current step as complete since it succeeded
-    await markStepComplete(job.id, currentStep);
+    await markStepComplete(job.id, currentStep, db);
   }
 
   // Start workflow from the next step
@@ -209,16 +219,18 @@ async function startWorkflowFromStepIfEnabled(
 // ============== Models Routes ==============
 
 problems.openapi(listModelsRoute, async (c) => {
-  const models = await listModels();
+  const db = c.get("db");
+  const models = await listModels(db);
   return c.json({ success: true as const, data: models }, 200);
 });
 
 problems.openapi(createModelRoute, async (c) => {
+  const db = c.get("db");
   const body = c.req.valid("json");
 
   try {
-    await createModel(body.name);
-    const model = await getModelByName(body.name);
+    await createModel(body.name, db);
+    const model = await getModelByName(body.name, db);
     return c.json({ success: true as const, data: model! }, 200);
   } catch {
     return c.json(
@@ -237,6 +249,7 @@ problems.openapi(createModelRoute, async (c) => {
 // ============== Problem Routes ==============
 
 problems.openapi(createProblemRoute, async (c) => {
+  const db = c.get("db");
   const userId = c.get("userId");
   if (!userId || typeof userId !== "string") {
     return c.json(
@@ -265,7 +278,7 @@ problems.openapi(createProblemRoute, async (c) => {
 
   if (body.startFrom) {
     // Fetch the original problem to get its text
-    const originalProblem = await getProblem(body.startFrom.problemId);
+    const originalProblem = await getProblem(body.startFrom.problemId, db);
     baseProblem = {
       problemText: originalProblem.problemText,
       direction: body.startFrom.direction,
@@ -282,11 +295,11 @@ problems.openapi(createProblemRoute, async (c) => {
     // For "similar" direction, we don't set any FK relationships
   }
 
-  const problemId = await createProblem(problemCreateData);
+  const problemId = await createProblem(problemCreateData, db);
 
   // Get or create model and update problem
-  const modelId = await getOrCreateModel(body.model);
-  await updateProblem(problemId, { generatedByModelId: modelId });
+  const modelId = await getOrCreateModel(body.model, db);
+  await updateProblem(problemId, { generatedByModelId: modelId }, db);
 
   const autoGenerate = query.autoGenerate !== "false";
   const jobId = await startWorkflowIfAuto(
@@ -304,14 +317,15 @@ problems.openapi(createProblemRoute, async (c) => {
 // ============== Problem Text Routes ==============
 
 problems.openapi(generateProblemTextRoute, async (c) => {
+  const db = c.get("db");
   const { problemId } = c.req.valid("param");
   const body = c.req.valid("json");
 
   // Update problem with model if not set
-  const problem = await getProblem(problemId);
+  const problem = await getProblem(problemId, db);
   if (!problem.generatedByModelId) {
-    const modelId = await getOrCreateModel(body.model);
-    await updateProblem(problemId, { generatedByModelId: modelId });
+    const modelId = await getOrCreateModel(body.model, db);
+    await updateProblem(problemId, { generatedByModelId: modelId }, db);
   }
 
   // Check idempotency: if data exists and step completed/in progress, return 409
@@ -325,6 +339,7 @@ problems.openapi(generateProblemTextRoute, async (c) => {
       problemId,
       "generateProblemText",
       dataExists ? true : false, // Cast as boolean since operation can return string
+      db,
     )
   ) {
     return c.json(
@@ -346,6 +361,7 @@ problems.openapi(generateProblemTextRoute, async (c) => {
     body.model,
     userId,
     c.env,
+    db,
     body.forceError,
     body.returnDummy,
   );
@@ -364,19 +380,21 @@ problems.openapi(generateProblemTextRoute, async (c) => {
 });
 
 problems.openapi(getProblemTextRoute, async (c) => {
+  const db = c.get("db");
   const { problemId } = c.req.valid("param");
-  const result = await getProblemText(problemId);
+  const result = await getProblemText(problemId, db);
   return c.json({ success: true as const, data: result }, 200);
 });
 
 // ============== Function Signature Schema Routes ==============
 
 problems.openapi(parseFunctionSignatureRoute, async (c) => {
+  const db = c.get("db");
   const { problemId } = c.req.valid("param");
   const body = c.req.valid("json");
 
   // Validate prerequisite: problem text must exist
-  const problem = await getProblem(problemId);
+  const problem = await getProblem(problemId, db);
   if (
     !problem.problemText ||
     !problem.functionSignature ||
@@ -403,6 +421,7 @@ problems.openapi(parseFunctionSignatureRoute, async (c) => {
       problemId,
       "parseFunctionSignature",
       dataExists,
+      db,
     )
   ) {
     return c.json(
@@ -424,6 +443,7 @@ problems.openapi(parseFunctionSignatureRoute, async (c) => {
     body.model,
     userId,
     c.env,
+    db,
     body.forceError,
     body.returnDummy,
   );
@@ -448,8 +468,9 @@ problems.openapi(parseFunctionSignatureRoute, async (c) => {
 });
 
 problems.openapi(getFunctionSignatureSchemaRoute, async (c) => {
+  const db = c.get("db");
   const { problemId } = c.req.valid("param");
-  const result = await getFunctionSignatureSchema(problemId);
+  const result = await getFunctionSignatureSchema(problemId, db);
   return c.json(
     { success: true as const, data: { functionSignatureSchema: result } },
     200,
@@ -457,10 +478,11 @@ problems.openapi(getFunctionSignatureSchemaRoute, async (c) => {
 });
 
 problems.openapi(getStarterCodeRoute, async (c) => {
+  const db = c.get("db");
   const { problemId } = c.req.valid("param");
   const { language } = c.req.valid("query");
 
-  const schema = await getFunctionSignatureSchema(problemId);
+  const schema = await getFunctionSignatureSchema(problemId, db);
   if (!schema) {
     return c.json(
       {
@@ -487,11 +509,12 @@ problems.openapi(getStarterCodeRoute, async (c) => {
 // ============== Test Cases Routes ==============
 
 problems.openapi(generateTestCasesRoute, async (c) => {
+  const db = c.get("db");
   const { problemId } = c.req.valid("param");
   const body = c.req.valid("json");
 
   // Validate prerequisite: problem text must exist
-  const problem = await getProblem(problemId);
+  const problem = await getProblem(problemId, db);
   if (
     !problem.problemText ||
     !problem.functionSignature ||
@@ -518,6 +541,7 @@ problems.openapi(generateTestCasesRoute, async (c) => {
       problemId,
       "generateTestCases",
       dataExists,
+      db,
     )
   ) {
     return c.json(
@@ -535,8 +559,8 @@ problems.openapi(generateTestCasesRoute, async (c) => {
 
   // Update problem with model if not set
   if (!problem.generatedByModelId) {
-    const modelId = await getOrCreateModel(body.model);
-    await updateProblem(problemId, { generatedByModelId: modelId });
+    const modelId = await getOrCreateModel(body.model, db);
+    await updateProblem(problemId, { generatedByModelId: modelId }, db);
   }
 
   const userId = problem.generatedByUserId || "unknown";
@@ -545,6 +569,7 @@ problems.openapi(generateTestCasesRoute, async (c) => {
     body.model,
     userId,
     c.env,
+    db,
     body.forceError,
     body.returnDummy,
   );
@@ -566,10 +591,11 @@ problems.openapi(generateTestCasesRoute, async (c) => {
 });
 
 problems.openapi(getTestCasesRoute, async (c) => {
+  const db = c.get("db");
   const { problemId } = c.req.valid("param");
 
   // Validate prerequisite: problem text must exist
-  const problem = await getProblem(problemId);
+  const problem = await getProblem(problemId, db);
   if (
     !problem.problemText ||
     !problem.functionSignature ||
@@ -589,18 +615,19 @@ problems.openapi(getTestCasesRoute, async (c) => {
     );
   }
 
-  const result = await getTestCases(problemId);
+  const result = await getTestCases(problemId, db);
   return c.json({ success: true as const, data: result }, 200);
 });
 
 // ============== Test Case Input Code Routes ==============
 
 problems.openapi(generateInputCodeRoute, async (c) => {
+  const db = c.get("db");
   const { problemId } = c.req.valid("param");
   const body = c.req.valid("json");
 
   // Validate prerequisite: test cases must exist
-  const problem = await getProblem(problemId);
+  const problem = await getProblem(problemId, db);
   if (!problem.testCases || problem.testCases.length === 0) {
     return c.json(
       {
@@ -629,6 +656,7 @@ problems.openapi(generateInputCodeRoute, async (c) => {
       problemId,
       "generateTestCaseInputCode",
       dataExists,
+      db,
     )
   ) {
     return c.json(
@@ -646,8 +674,8 @@ problems.openapi(generateInputCodeRoute, async (c) => {
 
   // Update problem with model if not set
   if (!problem.generatedByModelId) {
-    const modelId = await getOrCreateModel(body.model);
-    await updateProblem(problemId, { generatedByModelId: modelId });
+    const modelId = await getOrCreateModel(body.model, db);
+    await updateProblem(problemId, { generatedByModelId: modelId }, db);
   }
 
   const userId = problem.generatedByUserId || "unknown";
@@ -658,6 +686,7 @@ problems.openapi(generateInputCodeRoute, async (c) => {
     body.model,
     userId,
     c.env,
+    db,
     body.forceError,
     body.returnDummy,
   );
@@ -665,7 +694,7 @@ problems.openapi(generateInputCodeRoute, async (c) => {
   // Immediately execute the generated code to get inputs
   const sandboxId = `test-inputs-${problemId}`;
   const sandbox = getSandboxInstance(c.env, sandboxId);
-  const testCasesResult = await generateTestCaseInputs(problemId, sandbox);
+  const testCasesResult = await generateTestCaseInputs(problemId, sandbox, db);
 
   const enqueueNext = body.enqueueNextStep !== false;
   const jobId = await startWorkflowFromStepIfEnabled(
@@ -687,10 +716,11 @@ problems.openapi(generateInputCodeRoute, async (c) => {
 });
 
 problems.openapi(getInputCodeRoute, async (c) => {
+  const db = c.get("db");
   const { problemId } = c.req.valid("param");
 
   // Validate prerequisite: test cases must exist
-  const problem = await getProblem(problemId);
+  const problem = await getProblem(problemId, db);
   if (!problem.testCases || problem.testCases.length === 0) {
     return c.json(
       {
@@ -705,18 +735,19 @@ problems.openapi(getInputCodeRoute, async (c) => {
     );
   }
 
-  const result = await getTestCaseInputCode(problemId);
+  const result = await getTestCaseInputCode(problemId, db);
   return c.json({ success: true as const, data: result }, 200);
 });
 
 // ============== Test Case Inputs Routes ==============
 
 problems.openapi(generateInputsRoute, async (c) => {
+  const db = c.get("db");
   const { problemId } = c.req.valid("param");
   const body = c.req.valid("json");
 
   // Validate prerequisite: all test cases must have inputCode
-  const problem = await getProblem(problemId);
+  const problem = await getProblem(problemId, db);
   if (
     !problem.testCases ||
     problem.testCases.length === 0 ||
@@ -744,6 +775,7 @@ problems.openapi(generateInputsRoute, async (c) => {
       problemId,
       "generateTestCaseInputCode",
       dataExists,
+      db,
     )
   ) {
     return c.json(
@@ -761,7 +793,7 @@ problems.openapi(generateInputsRoute, async (c) => {
 
   const sandboxId = `test-inputs-${problemId}`;
   const sandbox = getSandboxInstance(c.env, sandboxId);
-  const result = await generateTestCaseInputs(problemId, sandbox);
+  const result = await generateTestCaseInputs(problemId, sandbox, db);
 
   const enqueueNext = body?.enqueueNextStep !== false;
   const jobId = await startWorkflowFromStepIfEnabled(
@@ -780,10 +812,11 @@ problems.openapi(generateInputsRoute, async (c) => {
 });
 
 problems.openapi(getInputsRoute, async (c) => {
+  const db = c.get("db");
   const { problemId } = c.req.valid("param");
 
   // Validate prerequisite: all test cases must have inputCode
-  const problem = await getProblem(problemId);
+  const problem = await getProblem(problemId, db);
   if (
     !problem.testCases ||
     problem.testCases.length === 0 ||
@@ -802,18 +835,19 @@ problems.openapi(getInputsRoute, async (c) => {
     );
   }
 
-  const result = await getTestCaseInputs(problemId);
+  const result = await getTestCaseInputs(problemId, db);
   return c.json({ success: true as const, data: result }, 200);
 });
 
 // ============== Solution Routes ==============
 
 problems.openapi(generateSolutionRoute, async (c) => {
+  const db = c.get("db");
   const { problemId } = c.req.valid("param");
   const body = c.req.valid("json");
 
   // Validate prerequisite: all test cases must have input field populated
-  const problem = await getProblem(problemId);
+  const problem = await getProblem(problemId, db);
   if (
     !problem.testCases ||
     problem.testCases.length === 0 ||
@@ -849,6 +883,7 @@ problems.openapi(generateSolutionRoute, async (c) => {
       problemId,
       "generateSolution",
       dataExists ? true : false, // Cast as boolean since operation can return string
+      db,
     )
   ) {
     return c.json(
@@ -866,8 +901,8 @@ problems.openapi(generateSolutionRoute, async (c) => {
 
   // Update problem with model if not set
   if (!problem.generatedByModelId && body.updateProblem) {
-    const modelId = await getOrCreateModel(body.model);
-    await updateProblem(problemId, { generatedByModelId: modelId });
+    const modelId = await getOrCreateModel(body.model, db);
+    await updateProblem(problemId, { generatedByModelId: modelId }, db);
   }
 
   const userId = problem.generatedByUserId || "unknown";
@@ -879,6 +914,7 @@ problems.openapi(generateSolutionRoute, async (c) => {
     body.model,
     userId,
     c.env,
+    db,
     updateProblemInDb,
     body.forceError,
     body.returnDummy,
@@ -887,7 +923,7 @@ problems.openapi(generateSolutionRoute, async (c) => {
   // Immediately execute solution with test inputs to get outputs
   const sandboxId = `test-outputs-${problemId}`;
   const sandbox = getSandboxInstance(c.env, sandboxId);
-  const testCasesResult = await generateTestCaseOutputs(problemId, sandbox);
+  const testCasesResult = await generateTestCaseOutputs(problemId, sandbox, db);
 
   const enqueueNext = body.enqueueNextStep !== false;
   const jobId = await startWorkflowFromStepIfEnabled(
@@ -909,10 +945,11 @@ problems.openapi(generateSolutionRoute, async (c) => {
 });
 
 problems.openapi(getSolutionRoute, async (c) => {
+  const db = c.get("db");
   const { problemId } = c.req.valid("param");
 
   // Validate prerequisite: all test cases must have input field populated
-  const problem = await getProblem(problemId);
+  const problem = await getProblem(problemId, db);
   if (
     !problem.testCases ||
     problem.testCases.length === 0 ||
@@ -933,22 +970,30 @@ problems.openapi(getSolutionRoute, async (c) => {
     );
   }
 
-  const result = await getSolution(problemId);
+  const result = await getSolution(problemId, db);
   return c.json({ success: true as const, data: { solution: result } }, 200);
 });
 
 problems.openapi(runSolutionRoute, async (c) => {
+  const db = c.get("db");
   const { problemId } = c.req.valid("param");
   const body = c.req.valid("json");
 
   const sandboxId = `solution-run-${problemId}`;
   const sandbox = getSandboxInstance(c.env, sandboxId);
   const language = CodeGenLanguageSchema.parse(body.language);
-  const result = await runUserSolution(problemId, body.code, sandbox, language);
+  const result = await runUserSolution(
+    problemId,
+    body.code,
+    sandbox,
+    db,
+    language,
+  );
   return c.json({ success: true as const, data: result }, 200);
 });
 
 problems.openapi(runCustomTestsRoute, async (c) => {
+  const db = c.get("db");
   const { problemId } = c.req.valid("param");
   const body = c.req.valid("json");
 
@@ -960,6 +1005,7 @@ problems.openapi(runCustomTestsRoute, async (c) => {
     body.code,
     body.customInputs,
     sandbox,
+    db,
     language,
   );
   return c.json({ success: true as const, data: result }, 200);
@@ -968,11 +1014,12 @@ problems.openapi(runCustomTestsRoute, async (c) => {
 // ============== Test Outputs Routes ==============
 
 problems.openapi(generateOutputsRoute, async (c) => {
+  const db = c.get("db");
   const { problemId } = c.req.valid("param");
   const body = c.req.valid("json");
 
   // Validate prerequisite: solution must exist
-  const problem = await getProblem(problemId);
+  const problem = await getProblem(problemId, db);
   if (!problem.solution || problem.solution.trim() === "") {
     return c.json(
       {
@@ -995,7 +1042,12 @@ problems.openapi(generateOutputsRoute, async (c) => {
       (tc) => tc.expected !== null && tc.expected !== undefined,
     );
   if (
-    await shouldReturnIdempotentError(problemId, "generateSolution", dataExists)
+    await shouldReturnIdempotentError(
+      problemId,
+      "generateSolution",
+      dataExists,
+      db,
+    )
   ) {
     return c.json(
       {
@@ -1012,7 +1064,7 @@ problems.openapi(generateOutputsRoute, async (c) => {
 
   const sandboxId = `test-outputs-${problemId}`;
   const sandbox = getSandboxInstance(c.env, sandboxId);
-  const result = await generateTestCaseOutputs(problemId, sandbox);
+  const result = await generateTestCaseOutputs(problemId, sandbox, db);
 
   const enqueueNext = body?.enqueueNextStep !== false;
   const jobId = await startWorkflowFromStepIfEnabled(
@@ -1031,10 +1083,11 @@ problems.openapi(generateOutputsRoute, async (c) => {
 });
 
 problems.openapi(getOutputsRoute, async (c) => {
+  const db = c.get("db");
   const { problemId } = c.req.valid("param");
 
   // Validate prerequisite: solution must exist
-  const problem = await getProblem(problemId);
+  const problem = await getProblem(problemId, db);
   if (!problem.solution || problem.solution.trim() === "") {
     return c.json(
       {
@@ -1049,15 +1102,16 @@ problems.openapi(getOutputsRoute, async (c) => {
     );
   }
 
-  const result = await getTestCaseOutputs(problemId);
+  const result = await getTestCaseOutputs(problemId, db);
   return c.json({ success: true as const, data: result }, 200);
 });
 
 // ============== Generation Status Route ==============
 
 problems.openapi(getGenerationStatusRoute, async (c) => {
+  const db = c.get("db");
   const { problemId } = c.req.valid("param");
-  const job = await getLatestJobForProblem(problemId);
+  const job = await getLatestJobForProblem(problemId, db);
 
   if (!job) {
     return c.json(
@@ -1095,8 +1149,9 @@ problems.openapi(getGenerationStatusRoute, async (c) => {
 // ============== Workflow Status Route ==============
 
 problems.openapi(getWorkflowStatusRoute, async (c) => {
+  const db = c.get("db");
   const { problemId } = c.req.valid("param");
-  const job = await getLatestJobForProblem(problemId);
+  const job = await getLatestJobForProblem(problemId, db);
 
   if (!job) {
     return c.json(
@@ -1148,8 +1203,9 @@ problems.openapi(getWorkflowStatusRoute, async (c) => {
 });
 
 problems.openapi(getProblemModelRoute, async (c) => {
+  const db = c.get("db");
   const { problemId } = c.req.valid("param");
-  const modelName = await getModelForProblem(problemId);
+  const modelName = await getModelForProblem(problemId, db);
   return c.json({ success: true as const, data: { model: modelName } }, 200);
 });
 

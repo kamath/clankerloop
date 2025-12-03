@@ -1,6 +1,6 @@
 import { generateObject } from "ai";
 import { z } from "zod";
-import { getProblem, replaceTestCases } from "@repo/db";
+import { getProblem, replaceTestCases, type Database } from "@repo/db";
 import { getTracedClient } from "@/utils/ai";
 
 export async function generateTestCases(
@@ -8,6 +8,7 @@ export async function generateTestCases(
   model: string,
   userId: string,
   env: Env,
+  db: Database,
   forceError?: boolean,
   returnDummy?: boolean,
 ) {
@@ -54,7 +55,7 @@ export async function generateTestCases(
       ],
     };
   } else {
-    const { problemText } = await getProblem(problemId);
+    const { problemText } = await getProblem(problemId, db);
     const tracedModel = getTracedClient(model, userId, problemId, model, env);
     const result = await generateObject({
       model: tracedModel,
@@ -107,11 +108,12 @@ export async function generateTestCases(
       input: [],
       expected: null,
     })),
+    db,
   );
   return object.testCases;
 }
 
-export async function getTestCases(problemId: string) {
-  const { testCases } = await getProblem(problemId);
+export async function getTestCases(problemId: string, db: Database) {
+  const { testCases } = await getProblem(problemId, db);
   return testCases;
 }

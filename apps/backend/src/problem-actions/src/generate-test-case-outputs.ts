@@ -1,6 +1,11 @@
 import { Sandbox } from "./sandbox";
 import { getSolution } from "./generate-solution";
-import { getProblem, updateTestCase, type TestCase } from "@repo/db";
+import {
+  getProblem,
+  updateTestCase,
+  type TestCase,
+  type Database,
+} from "@repo/db";
 
 /**
  * Runs the reference solution on an arbitrary input and returns the expected output.
@@ -9,15 +14,17 @@ import { getProblem, updateTestCase, type TestCase } from "@repo/db";
  * @param problemId - The problem ID to fetch the solution for
  * @param input - The input to run the solution on (array of function arguments)
  * @param sandbox - The sandbox instance to execute code in
+ * @param db - The database instance
  * @returns The expected output value, or null if execution failed
  */
 export async function runReferenceSolutionOnInput(
   problemId: string,
   input: unknown,
   sandbox: Sandbox,
+  db: Database,
 ): Promise<unknown | null> {
   try {
-    const solution = await getSolution(problemId);
+    const solution = await getSolution(problemId, db);
     if (!solution) {
       return null;
     }
@@ -40,8 +47,9 @@ export async function runReferenceSolutionOnInput(
 export async function generateTestCaseOutputs(
   problemId: string,
   sandbox: Sandbox,
+  db: Database,
 ) {
-  const { testCases } = await getProblem(problemId);
+  const { testCases } = await getProblem(problemId, db);
   if (!testCases) {
     throw new Error(
       "No test cases found. Please generate test case descriptions and inputs first.",
@@ -54,6 +62,7 @@ export async function generateTestCaseOutputs(
       problemId,
       testCase.input,
       sandbox,
+      db,
     );
     if (result === null) {
       throw new Error(
@@ -74,13 +83,13 @@ export async function generateTestCaseOutputs(
     if (!testCase) {
       throw new Error(`Test case at index ${index} is undefined`);
     }
-    await updateTestCase(testCase.id, { expected: result });
+    await updateTestCase(testCase.id, { expected: result }, db);
   }
 
   return results;
 }
 
-export async function getTestCaseOutputs(problemId: string) {
-  const { testCases } = await getProblem(problemId);
+export async function getTestCaseOutputs(problemId: string, db: Database) {
+  const { testCases } = await getProblem(problemId, db);
   return testCases.map((testCase: TestCase) => testCase.expected);
 }

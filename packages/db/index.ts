@@ -7,26 +7,35 @@ import * as schema from "./src/schema";
 // Each request must create its own connection to avoid I/O object conflicts.
 // postgres-js automatically detects Workers environment and uses HTTP mode.
 
-const connectionString = process.env.DATABASE_URL!;
+// Type for the database instance
+export type Database = ReturnType<typeof drizzle<typeof schema>>;
 
-// Create a function that returns a fresh db instance
+// Create a function that returns a fresh db instance with a given connection string
 // This ensures each request gets its own isolated connection
-export function createDb() {
+export function createDb(connectionString: string): Database {
   const client = postgres(connectionString, {
     max: 1, // Single connection - no pooling in Workers
   });
   return drizzle(client, { schema });
 }
 
-// For Cloudflare Workers, create a Proxy that creates a fresh connection
-// for each top-level property access. This ensures each request gets its own connection.
-// Note: This creates a new connection for each property access, which is necessary
-// because Workers cannot share I/O objects across requests.
-const db = new Proxy({} as ReturnType<typeof createDb>, {
+// For backwards compatibility (Node.js environments like drizzle.config.ts, migrations, etc.)
+// This reads from process.env at module load time - only use in Node.js, not Workers
+function getDefaultDb(): Database {
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error("DATABASE_URL environment variable is not set");
+  }
+  return createDb(connectionString);
+}
+
+// Legacy proxy for backwards compatibility - DEPRECATED for Workers
+// Only use in Node.js scripts, tests, or migrations, not in Cloudflare Workers
+// For Workers, use createDb(connectionString) directly with c.env.DATABASE_URL
+const db = new Proxy({} as Database, {
   get(_target, prop) {
     // Create a fresh db instance for each property access
-    // This is necessary because Workers cannot share I/O objects across requests
-    const freshDb = createDb();
+    const freshDb = getDefaultDb();
     const value = freshDb[prop as keyof typeof freshDb];
 
     // If it's a function, bind it to the fresh db instance
@@ -35,10 +44,9 @@ const db = new Proxy({} as ReturnType<typeof createDb>, {
     }
 
     // For objects (like .query), return them directly from the fresh connection
-    // All nested property accesses will use the same underlying connection
     return value;
   },
-}) as ReturnType<typeof createDb>;
+});
 
 export default db;
 export * from "./src/schema";

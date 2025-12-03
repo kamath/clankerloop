@@ -4,8 +4,10 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { apiKeyAuth } from "./middleware/auth";
+import { databaseMiddleware } from "./middleware/database";
 import { problems } from "./routes/problems";
 import { ProblemGenerationWorkflow } from "./workflows/problem-generation";
+import type { Database } from "@repo/db";
 
 const app = new OpenAPIHono<{ Bindings: Env }>();
 
@@ -40,8 +42,10 @@ const api = new OpenAPIHono<{
   Bindings: Env;
   Variables: {
     userId: string;
+    db: Database;
   };
 }>();
+api.use("*", databaseMiddleware);
 api.use("*", apiKeyAuth);
 api.route("/problems", problems);
 

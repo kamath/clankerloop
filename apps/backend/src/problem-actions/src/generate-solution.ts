@@ -1,7 +1,12 @@
 import { generateObject } from "ai";
 import { z } from "zod";
 import { DEFAULT_LANGUAGE } from "./constants";
-import { getProblem, updateProblem, type TestCase } from "@repo/db";
+import {
+  getProblem,
+  updateProblem,
+  type TestCase,
+  type Database,
+} from "@repo/db";
 import { getTracedClient } from "@/utils/ai";
 
 export async function generateSolution(
@@ -9,6 +14,7 @@ export async function generateSolution(
   model: string,
   userId: string,
   env: Env,
+  db: Database,
   updateProblemInDb: boolean = true,
   forceError?: boolean,
   returnDummy?: boolean,
@@ -16,8 +22,10 @@ export async function generateSolution(
   if (forceError) {
     throw new Error("Force error: generateObject call skipped");
   }
-  const { problemText, functionSignature, testCases } =
-    await getProblem(problemId);
+  const { problemText, functionSignature, testCases } = await getProblem(
+    problemId,
+    db,
+  );
 
   if (!testCases || testCases.length === 0) {
     throw new Error(
@@ -65,13 +73,13 @@ DO NOT INCLUDE CODE OUTSIDE THE FUNCTION DEFINITION. DO NOT INVOKE THE FUNCTION.
   const solution = object.solution;
 
   if (updateProblemInDb) {
-    await updateProblem(problemId, { solution });
+    await updateProblem(problemId, { solution }, db);
   }
 
   return solution;
 }
 
-export async function getSolution(problemId: string) {
-  const { solution } = await getProblem(problemId);
+export async function getSolution(problemId: string, db: Database) {
+  const { solution } = await getProblem(problemId, db);
   return solution;
 }

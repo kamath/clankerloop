@@ -1,5 +1,5 @@
 import { generateObject } from "ai";
-import { getProblem, updateProblem } from "@repo/db";
+import { getProblem, updateProblem, type Database } from "@repo/db";
 import {
   FunctionSignatureSchemaSchema,
   type FunctionSignatureSchema,
@@ -11,6 +11,7 @@ export async function parseFunctionSignature(
   model: string,
   userId: string,
   env: Env,
+  db: Database,
   forceError?: boolean,
   returnDummy?: boolean,
 ): Promise<FunctionSignatureSchema> {
@@ -18,7 +19,7 @@ export async function parseFunctionSignature(
     throw new Error("Force error: parseFunctionSignature call skipped");
   }
 
-  const problem = await getProblem(problemId);
+  const problem = await getProblem(problemId, db);
 
   if (!problem.functionSignature) {
     throw new Error("Problem does not have a function signature to parse");
@@ -76,16 +77,21 @@ IMPORTANT: Parse "number" as "int" unless the problem clearly involves decimals 
     schema = result.object;
   }
 
-  await updateProblem(problemId, {
-    functionSignatureSchema: schema,
-  });
+  await updateProblem(
+    problemId,
+    {
+      functionSignatureSchema: schema,
+    },
+    db,
+  );
 
   return schema;
 }
 
 export async function getFunctionSignatureSchema(
   problemId: string,
+  db: Database,
 ): Promise<FunctionSignatureSchema | null> {
-  const problem = await getProblem(problemId);
+  const problem = await getProblem(problemId, db);
   return problem.functionSignatureSchema ?? null;
 }

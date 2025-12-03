@@ -8,6 +8,9 @@ export type {
   LanguageConfig,
 } from "./src/types";
 
+// Re-export Database type from @repo/db
+export type { Database } from "@repo/db";
+
 // Constants
 export { DEFAULT_LANGUAGE } from "./src/constants";
 
