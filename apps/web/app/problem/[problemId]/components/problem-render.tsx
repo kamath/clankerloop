@@ -52,7 +52,6 @@ import {
 } from "@/components/ui/select";
 import { useQueryClient } from "@tanstack/react-query";
 import type { GenerationStep } from "@/hooks/use-problem";
-import { getStarterCode } from "@/actions/get-starter-code";
 import {
   Collapsible,
   CollapsibleContent,
@@ -102,33 +101,12 @@ export default function ProblemRender({
     isLoading: isStarterCodeLoading,
     error: starterCodeError,
     data: starterCode,
+    getData: getStarterCodeData,
   } = useStarterCode(problemId, language, user.apiKey);
 
   useEffect(() => {
     if (!problemText) getProblemText();
   }, [getProblemText, problemText]);
-
-  // Fetch starter code when problem text is available and language changes
-  useEffect(() => {
-    if (problemText?.functionSignatureSchema && problemId) {
-      queryClient
-        .fetchQuery({
-          queryKey: ["starterCode", problemId, language],
-          queryFn: () => getStarterCode(problemId, language, user.apiKey),
-          staleTime: Infinity,
-        })
-        .catch((error) => {
-          // Silently handle errors - they'll be shown via the query state
-          console.error("Failed to fetch starter code:", error);
-        });
-    }
-  }, [
-    problemText?.functionSignatureSchema,
-    language,
-    problemId,
-    queryClient,
-    user.apiKey,
-  ]);
 
   // Set user solution when starter code is fetched
   useEffect(() => {
@@ -323,6 +301,31 @@ export default function ProblemRender({
       return () => clearInterval(interval);
     }
   }, [completedSteps, problemText, isGenerating, getProblemText]);
+
+  // Refetch problemText when parseFunctionSignature completes to get updated functionSignatureSchema
+  useEffect(() => {
+    if (
+      completedSteps.includes("parseFunctionSignature") &&
+      (!problemText?.functionSignatureSchema ||
+        problemText.functionSignatureSchema === null)
+    ) {
+      getProblemText();
+    }
+  }, [completedSteps, problemText?.functionSignatureSchema, getProblemText]);
+
+  // Fetch starter code when parseFunctionSignature step completes and language changes
+  useEffect(() => {
+    if (
+      completedSteps.includes("parseFunctionSignature") &&
+      problemId &&
+      !starterCode
+    ) {
+      getStarterCodeData().catch((error) => {
+        // Silently handle errors - they'll be shown via the query state
+        console.error("Failed to fetch starter code:", error);
+      });
+    }
+  }, [completedSteps, language, problemId, starterCode, getStarterCodeData]);
 
   useEffect(() => {
     if (completedSteps.includes("generateTestCases") && !testCases) {
