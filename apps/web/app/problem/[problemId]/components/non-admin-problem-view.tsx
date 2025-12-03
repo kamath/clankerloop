@@ -259,23 +259,9 @@ export default function NonAdminProblemView({
         </div>
       )}
 
-      {/* Run User Solution */}
+      {/* Test Results */}
       <div className="space-y-3 border-t pt-4">
-        <h2 className="text-lg font-semibold">Test Your Solution</h2>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={async () => {
-            try {
-              await callRunUserSolution();
-            } catch (error) {
-              console.error("Failed to run user solution:", error);
-            }
-          }}
-          disabled={isRunUserSolutionLoading}
-        >
-          {isRunUserSolutionLoading ? "Running..." : "Run Solution"}
-        </Button>
+        <h2 className="text-lg font-semibold">Test Results</h2>
         {isRunUserSolutionLoading && (
           <div className="flex items-center gap-2">
             <Loader />

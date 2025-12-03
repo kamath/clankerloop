@@ -2,7 +2,7 @@
 
 import Editor from "@monaco-editor/react";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -32,7 +32,7 @@ import { ClientFacingUserObject } from "@/lib/auth-types";
 import { createProblem } from "@/actions/create-problem";
 import { signOutAction } from "@/app/(auth)/signout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2Icon } from "lucide-react";
+import { Loader2Icon, PlayIcon } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -59,6 +59,8 @@ export default function ProblemRender({
   const [selectedModel, setSelectedModel] = useState<string>("");
   const [isAdjustingDifficulty, setIsAdjustingDifficulty] = useState(false);
   const [isRegeneratingSimilar, setIsRegeneratingSimilar] = useState(false);
+  const runCustomTestsRef = useRef<(() => Promise<void>) | null>(null);
+  const [canRunCustomTests, setCanRunCustomTests] = useState(false);
 
   const {
     isLoading: isProblemTextLoading,
@@ -464,7 +466,9 @@ export default function ProblemRender({
                   <span className="text-sm font-medium">Language:</span>
                   <Select
                     value={language}
-                    onValueChange={(value: CodeGenLanguage) => setLanguage(value)}
+                    onValueChange={(value: CodeGenLanguage) =>
+                      setLanguage(value)
+                    }
                     disabled={isStarterCodeLoading}
                   >
                     <SelectTrigger className="w-[140px]">
@@ -478,6 +482,44 @@ export default function ProblemRender({
                   {isStarterCodeLoading && (
                     <Loader2Icon className="h-4 w-4 animate-spin" />
                   )}
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="h-7"
+                    onClick={async () => {
+                      try {
+                        await callRunUserSolution();
+                      } catch (error) {
+                        console.error("Failed to run user solution:", error);
+                      }
+                    }}
+                    disabled={isRunUserSolutionLoading || !userSolution}
+                  >
+                    {isRunUserSolutionLoading ? (
+                      <Loader2Icon className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <PlayIcon className="h-4 w-4 mr-1" />
+                    )}
+                    Run Solution
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="h-7"
+                    onClick={async () => {
+                      if (runCustomTestsRef.current) {
+                        await runCustomTestsRef.current();
+                      }
+                    }}
+                    disabled={isRunCustomTestsLoading || !canRunCustomTests}
+                  >
+                    {isRunCustomTestsLoading ? (
+                      <Loader2Icon className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <PlayIcon className="h-4 w-4 mr-1" />
+                    )}
+                    Run
+                  </Button>
                 </div>
                 {starterCodeError && (
                   <span className="text-xs text-destructive">
@@ -521,6 +563,8 @@ export default function ProblemRender({
                 customTestsError={customTestsError}
                 customTestResults={customTestResults}
                 callRunCustomTests={callRunCustomTests}
+                onRunTestsRef={runCustomTestsRef}
+                onCanRunTestsChange={setCanRunCustomTests}
               />
             </ResizablePanel>
           </ResizablePanelGroup>

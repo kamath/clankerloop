@@ -2,8 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useState, useRef, useEffect } from "react";
-import { PlusIcon, XIcon, Loader2Icon, PlayIcon } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { PlusIcon, XIcon } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -31,6 +31,8 @@ interface CustomTestInputsProps {
     | undefined;
   callRunCustomTests: (inputs: unknown[][]) => Promise<unknown>;
   problemId: string;
+  onRunTestsRef?: React.MutableRefObject<(() => Promise<void>) | null>;
+  onCanRunTestsChange?: (canRun: boolean) => void;
 }
 
 export default function CustomTestInputs({
@@ -41,6 +43,8 @@ export default function CustomTestInputs({
   customTestResults,
   callRunCustomTests,
   problemId,
+  onRunTestsRef,
+  onCanRunTestsChange,
 }: CustomTestInputsProps) {
   const [customTestCases, setCustomTestCases] = useState<
     Array<{ id: string; inputText: string }>
@@ -113,7 +117,7 @@ export default function CustomTestInputs({
     }
   };
 
-  const handleRunTests = async () => {
+  const handleRunTests = useCallback(async () => {
     try {
       const validInputs: unknown[][] = [];
       let hasError = false;
@@ -150,7 +154,22 @@ export default function CustomTestInputs({
     } catch (error) {
       console.error("Failed to run custom tests:", error);
     }
-  };
+  }, [customTestCases, callRunCustomTests]);
+
+  // Expose handleRunTests via ref if provided
+  useEffect(() => {
+    if (onRunTestsRef) {
+      onRunTestsRef.current = handleRunTests;
+    }
+  }, [onRunTestsRef, customTestCases, handleRunTests]);
+
+  // Notify parent about whether tests can be run
+  useEffect(() => {
+    if (onCanRunTestsChange) {
+      const canRun = !customTestCases.every((tc) => !tc.inputText.trim());
+      onCanRunTestsChange(canRun);
+    }
+  }, [customTestCases, onCanRunTestsChange]);
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -158,25 +177,6 @@ export default function CustomTestInputs({
       <div className="flex items-center justify-between p-2 border-b flex-shrink-0 bg-background">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">Testcase</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="default"
-            size="sm"
-            className="h-7"
-            onClick={handleRunTests}
-            disabled={
-              isRunCustomTestsLoading ||
-              customTestCases.every((tc) => !tc.inputText.trim())
-            }
-          >
-            {isRunCustomTestsLoading ? (
-              <Loader2Icon className="h-4 w-4 mr-1 animate-spin" />
-            ) : (
-              <PlayIcon className="h-4 w-4 mr-1" />
-            )}
-            Run
-          </Button>
         </div>
       </div>
 
