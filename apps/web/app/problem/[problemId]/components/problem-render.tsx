@@ -195,7 +195,7 @@ export default function ProblemRender({
     problemId,
     userSolution,
     language,
-    user.apiKey
+    user.apiKey,
   );
 
   const {
@@ -211,7 +211,7 @@ export default function ProblemRender({
     step: GenerationStep,
     isLoading: boolean,
     error: unknown,
-    hasData: boolean
+    hasData: boolean,
   ): StepStatus => {
     if (error) return "error";
     // Prioritize "loading" when data is actively being fetched
@@ -230,7 +230,7 @@ export default function ProblemRender({
     stepIndex: number,
     isLoading: boolean,
     error: unknown,
-    hasData: boolean
+    hasData: boolean,
   ): boolean => {
     const stepStatus = getStepStatus(step, isLoading, error, hasData);
 
@@ -530,7 +530,7 @@ export default function ProblemRender({
       stepIndex,
       isLoading,
       error,
-      hasData
+      hasData,
     );
 
     if (!isVisible) return null;
@@ -782,7 +782,7 @@ export default function ProblemRender({
                     selectedModel,
                     false,
                     true,
-                    false
+                    false,
                   )
                 }
                 onGenerateWithError={() =>
@@ -790,7 +790,7 @@ export default function ProblemRender({
                     selectedModel,
                     true,
                     true,
-                    false
+                    false,
                   )
                 }
                 onRefetch={getCodeToGenerateTestCaseInputs}
@@ -855,7 +855,7 @@ export default function ProblemRender({
                     undefined,
                     true,
                     false,
-                    false
+                    false,
                   )
                 }
                 onGenerateWithError={() =>
@@ -864,7 +864,7 @@ export default function ProblemRender({
                     undefined,
                     true,
                     true,
-                    false
+                    false,
                   )
                 }
                 onRefetch={getSolution}
@@ -1089,7 +1089,6 @@ export default function ProblemRender({
                 <div className="space-y-3">
                   {customTestCases.map((testCase, index) => {
                     // Parse and validate this test case's input
-                    let parsedInput: unknown[] | null = null;
                     let validationError: string | null = null;
 
                     if (testCase.inputText.trim()) {
@@ -1098,8 +1097,6 @@ export default function ProblemRender({
                         if (!Array.isArray(parsed)) {
                           validationError =
                             "Input must be a JSON array of function arguments.";
-                        } else {
-                          parsedInput = parsed;
                         }
                       } catch {
                         validationError =
@@ -1131,7 +1128,9 @@ export default function ProblemRender({
                                   className="h-6 w-6 p-0"
                                   onClick={() => {
                                     setCustomTestCases((prev) =>
-                                      prev.filter((tc) => tc.id !== testCase.id)
+                                      prev.filter(
+                                        (tc) => tc.id !== testCase.id,
+                                      ),
                                     );
                                   }}
                                 >
@@ -1147,8 +1146,8 @@ export default function ProblemRender({
                                   prev.map((tc) =>
                                     tc.id === testCase.id
                                       ? { ...tc, inputText: e.target.value }
-                                      : tc
-                                  )
+                                      : tc,
+                                  ),
                                 );
                               }}
                               className="font-mono text-sm min-h-[60px]"
@@ -1406,7 +1405,7 @@ export default function ProblemRender({
                             selectedModel,
                             false,
                             true,
-                            false
+                            false,
                           );
                         if (generatedSolution) {
                           setUserSolution(generatedSolution);
@@ -1437,7 +1436,7 @@ export default function ProblemRender({
                             selectedModel,
                             false,
                             true,
-                            true
+                            true,
                           );
                         if (generatedSolution) {
                           setUserSolution(generatedSolution);

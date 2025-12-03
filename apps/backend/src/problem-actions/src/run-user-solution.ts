@@ -258,7 +258,11 @@ export async function runUserSolutionWithCustomInputs(
       await sandbox.uploadFile(Buffer.from(inputJson, "utf-8"), inputPath);
 
       // Run reference solution to get expected output using the abstracted function
-      const expected = await runReferenceSolutionOnInput(problemId, input, sandbox);
+      const expected = await runReferenceSolutionOnInput(
+        problemId,
+        input,
+        sandbox,
+      );
 
       // Run user solution
       try {

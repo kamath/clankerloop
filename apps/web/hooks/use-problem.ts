@@ -518,7 +518,12 @@ export function useRunUserSolution(
     queryFn: () => {
       if (!problemId) throw new Error("Problem ID is not set");
       if (!userSolution) throw new Error("User solution is not set");
-      return runUserSolution(problemId, userSolution, language, encryptedUserId);
+      return runUserSolution(
+        problemId,
+        userSolution,
+        language,
+        encryptedUserId,
+      );
     },
     enabled: false,
   });
