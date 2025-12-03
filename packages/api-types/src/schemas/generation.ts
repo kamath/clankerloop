@@ -49,8 +49,35 @@ export const GenerationStatusSchema = z
   })
   .openapi("GenerationStatus");
 
+// Workflow status schema (Cloudflare Workflows instance status)
+export const WorkflowStatusSchema = z
+  .enum([
+    "queued",
+    "running",
+    "paused",
+    "errored",
+    "terminated",
+    "complete",
+    "waiting",
+    "waitingForPause",
+    "unknown",
+  ])
+  .openapi("WorkflowStatus");
+
+export const WorkflowStatusResponseSchema = z
+  .object({
+    status: WorkflowStatusSchema,
+    error: z.string().optional(),
+    output: z.unknown().optional(),
+  })
+  .openapi("WorkflowStatusResponse");
+
 // Inferred types
 export type GenerationStep = z.infer<typeof GenerationStepSchema>;
 export type GenerationJobStatus = z.infer<typeof GenerationJobStatusSchema>;
 export type GenerationJob = z.infer<typeof GenerationJobSchema>;
 export type GenerationStatus = z.infer<typeof GenerationStatusSchema>;
+export type WorkflowStatus = z.infer<typeof WorkflowStatusSchema>;
+export type WorkflowStatusResponse = z.infer<
+  typeof WorkflowStatusResponseSchema
+>;

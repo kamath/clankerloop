@@ -22,6 +22,7 @@ import {
   useRunUserSolution,
   useRunUserSolutionWithCustomInputs,
   useGenerationStatus,
+  useWorkflowStatus,
   useModels,
   useProblemModel,
   useStarterCode,
@@ -184,6 +185,14 @@ export default function ProblemRender({
     isFailed,
     error: generationError,
   } = useGenerationStatus(problemId, user.apiKey);
+
+  const {
+    status: workflowStatus,
+    isLoading: isWorkflowStatusLoading,
+    isActive: isWorkflowActive,
+    isComplete: isWorkflowComplete,
+    isErrored: isWorkflowErrored,
+  } = useWorkflowStatus(problemId, user.apiKey);
 
   // Helper function to get step status
   const getStepStatus = (
@@ -736,6 +745,51 @@ export default function ProblemRender({
             </div>
 
             <TopLevelStatusIndicator />
+
+            {workflowStatus && (
+              <div className="space-y-1">
+                <div className="text-sm font-medium">Workflow Status</div>
+                <Badge
+                  variant={
+                    isWorkflowErrored
+                      ? "destructive"
+                      : isWorkflowComplete
+                        ? "default"
+                        : isWorkflowActive
+                          ? "secondary"
+                          : "outline"
+                  }
+                  className="flex items-center gap-1.5"
+                >
+                  {isWorkflowStatusLoading ? (
+                    <>
+                      <Loader2Icon className="h-3 w-3 animate-spin" />
+                      Loading...
+                    </>
+                  ) : isWorkflowErrored ? (
+                    <>
+                      <XCircleIcon className="h-3 w-3" />
+                      {workflowStatus}
+                    </>
+                  ) : isWorkflowComplete ? (
+                    <>
+                      <CheckCircle2Icon className="h-3 w-3" />
+                      {workflowStatus}
+                    </>
+                  ) : isWorkflowActive ? (
+                    <>
+                      <Loader2Icon className="h-3 w-3 animate-spin" />
+                      {workflowStatus}
+                    </>
+                  ) : (
+                    <>
+                      <ClockIcon className="h-3 w-3" />
+                      {workflowStatus}
+                    </>
+                  )}
+                </Badge>
+              </div>
+            )}
 
             {generationError && (
               <Alert variant="destructive">

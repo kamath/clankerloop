@@ -58,6 +58,7 @@ import {
   generateOutputsRoute,
   getOutputsRoute,
   getGenerationStatusRoute,
+  getWorkflowStatusRoute,
   getProblemModelRoute,
 } from "./problems.routes";
 
@@ -130,6 +131,7 @@ async function startWorkflowIfAuto(
 
   // Start the workflow
   await c.env.PROBLEM_GENERATION_WORKFLOW.create({
+    id: jobId,
     params: {
       jobId,
       problemId,
@@ -186,6 +188,7 @@ async function startWorkflowFromStepIfEnabled(
 
   // Start workflow from the next step
   await c.env.PROBLEM_GENERATION_WORKFLOW.create({
+    id: job.id,
     params: {
       jobId: job.id,
       problemId,
@@ -1050,6 +1053,61 @@ problems.openapi(getGenerationStatusRoute, async (c) => {
     },
     200,
   );
+});
+
+// ============== Workflow Status Route ==============
+
+problems.openapi(getWorkflowStatusRoute, async (c) => {
+  const { problemId } = c.req.valid("param");
+  const job = await getLatestJobForProblem(problemId);
+
+  if (!job) {
+    return c.json(
+      {
+        success: false as const,
+        error: {
+          code: "NOT_FOUND",
+          message: "No generation job found for this problem",
+        },
+      },
+      404,
+    );
+  }
+
+  try {
+    // Get the workflow instance using jobId as the instance ID
+    const workflowInstance = await c.env.PROBLEM_GENERATION_WORKFLOW.get(
+      job.id,
+    );
+    const status = await workflowInstance.status();
+
+    return c.json(
+      {
+        success: true as const,
+        data: {
+          status: status.status,
+          error: status.error,
+          output: status.output,
+        },
+      },
+      200,
+    );
+  } catch (error) {
+    // Workflow instance might not exist yet or might have been cleaned up
+    return c.json(
+      {
+        success: false as const,
+        error: {
+          code: "NOT_FOUND",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Workflow instance not found",
+        },
+      },
+      404,
+    );
+  }
 });
 
 problems.openapi(getProblemModelRoute, async (c) => {

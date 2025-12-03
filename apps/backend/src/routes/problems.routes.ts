@@ -27,6 +27,7 @@ import {
   TestResultsSchema,
   CustomTestResultsSchema,
   GenerationStatusSchema,
+  WorkflowStatusResponseSchema,
   ProblemModelSchema,
   FunctionSignatureSchemaResponseSchema,
   FunctionSignatureSchemaGenerateResponseSchema,
@@ -702,6 +703,33 @@ export const getGenerationStatusRoute = createRoute({
         },
       },
       description: "Generation status retrieved",
+    },
+  },
+  security: [{ ApiKeyAuth: [] }],
+});
+
+export const getWorkflowStatusRoute = createRoute({
+  method: "get",
+  path: "/{problemId}/workflow-status",
+  tags: ["Problems"],
+  summary: "Get workflow status",
+  description:
+    "Retrieves the Cloudflare Workflows instance status for the problem generation",
+  request: {
+    params: ProblemIdParamSchema,
+  },
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: ApiSuccessSchema(WorkflowStatusResponseSchema),
+        },
+      },
+      description: "Workflow status retrieved",
+    },
+    404: {
+      content: { "application/json": { schema: ApiErrorSchema } },
+      description: "No workflow instance found",
     },
   },
   security: [{ ApiKeyAuth: [] }],

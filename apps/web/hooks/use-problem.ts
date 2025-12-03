@@ -33,6 +33,10 @@ import {
   getGenerationStatus,
   type GenerationStep,
 } from "@/actions/generation-status";
+import {
+  getWorkflowStatus,
+  type WorkflowStatus,
+} from "@/actions/get-workflow-status";
 import { listModels } from "@/actions/list-models";
 import { getProblemModel } from "@/actions/get-problem-model";
 import { getStarterCode } from "@/actions/get-starter-code";
@@ -652,6 +656,60 @@ export function useGenerationStatus(
     isComplete: query.data?.status === "completed",
     isFailed: query.data?.status === "failed",
     error: query.data?.error,
+  };
+}
+
+export function useWorkflowStatus(
+  problemId: string | null,
+  encryptedUserId?: string,
+) {
+  const query = useQuery({
+    queryKey: ["workflowStatus", problemId],
+    queryFn: () => {
+      if (!problemId) throw new Error("Problem ID is not set");
+      return getWorkflowStatus(problemId, encryptedUserId);
+    },
+    enabled: !!problemId,
+    staleTime: 0,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      // Poll while workflow is active
+      if (
+        status === "queued" ||
+        status === "running" ||
+        status === "waiting" ||
+        status === "waitingForPause"
+      ) {
+        return 3_000;
+      }
+      return false;
+    },
+    retry: (failureCount, error: unknown) => {
+      // Don't retry on 404 (workflow might not exist yet)
+      if (
+        error &&
+        typeof error === "object" &&
+        "status" in error &&
+        error.status === 404
+      ) {
+        return false;
+      }
+      return failureCount < 3;
+    },
+  });
+
+  return {
+    data: query.data,
+    status: query.data?.status as WorkflowStatus | undefined,
+    isLoading: query.isLoading,
+    error: query.error,
+    isActive:
+      query.data?.status === "queued" ||
+      query.data?.status === "running" ||
+      query.data?.status === "waiting" ||
+      query.data?.status === "waitingForPause",
+    isComplete: query.data?.status === "complete",
+    isErrored: query.data?.status === "errored",
   };
 }
 
