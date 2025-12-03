@@ -249,8 +249,14 @@ problems.openapi(createProblemRoute, async (c) => {
   const query = c.req.valid("query");
 
   // Handle difficulty adjustment if startFrom is provided
-  let baseProblem: { problemText: string; direction: "easier" | "harder" } | undefined;
-  let problemCreateData: { generatedByUserId: string; easierThan?: string; harderThan?: string } = {
+  let baseProblem:
+    | { problemText: string; direction: "easier" | "harder" }
+    | undefined;
+  const problemCreateData: {
+    generatedByUserId: string;
+    easierThan?: string;
+    harderThan?: string;
+  } = {
     generatedByUserId: userId,
   };
 
