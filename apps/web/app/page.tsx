@@ -1,21 +1,29 @@
-import Link from "next/link";
-import { listProblems } from "@repo/db";
-import { Button } from "@/components/ui/button";
+import { withAuth } from "@workos-inc/authkit-nextjs";
+import { redirect } from "next/navigation";
+import { getLatestProblemForUser } from "@repo/db";
+import ProblemRender from "./problem/[problemId]/components/problem-render";
 
 export default async function Home() {
-  const problems = await listProblems();
+  const { user } = await withAuth({
+    ensureSignedIn: false,
+  });
+
+  // If user is logged in, check for their latest problem
+  if (user) {
+    const latestProblemId = await getLatestProblemForUser(user.id);
+    if (latestProblemId) {
+      redirect(`/problem/${latestProblemId}`);
+    }
+    // If no problem exists, redirect to create page
+    redirect("/problem/create");
+  }
+
+  // If user is not logged in, render ProblemRender in empty state
   return (
-    <div>
-      <ul>
-        {problems.map((problem) => (
-          <li key={problem}>
-            <Link href={`/problem/${problem}`}>{problem}</Link>
-          </li>
-        ))}
-        <Link href={"/problem/create"}>
-          <Button variant={"outline"}>Create Problem</Button>
-        </Link>
-      </ul>
-    </div>
+    <ProblemRender
+      problemId={null}
+      user={null}
+      isAdmin={false}
+    />
   );
 }

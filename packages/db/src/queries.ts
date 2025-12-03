@@ -196,6 +196,21 @@ export async function listProblems(db?: Database): Promise<string[]> {
   return result.map((row) => row.id);
 }
 
+export async function getLatestProblemForUser(
+  userId: string,
+  db?: Database,
+): Promise<string | null> {
+  const database = getDb(db);
+  const result = await database
+    .select({ id: problems.id })
+    .from(problems)
+    .where(eq(problems.generatedByUserId, userId))
+    .orderBy(desc(problems.createdAt))
+    .limit(1);
+
+  return result[0]?.id ?? null;
+}
+
 // TestCase functions
 
 export async function createTestCase(
