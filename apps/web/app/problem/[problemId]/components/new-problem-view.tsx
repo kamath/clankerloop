@@ -41,7 +41,7 @@ export default function NewProblemView({
         return ids.filter((id) => focusAreas.some((area) => area.id === id));
       }
       return [];
-    },
+    }
   );
 
   // Auto-generate if flag is set and user is logged in
@@ -69,12 +69,12 @@ export default function NewProblemView({
     try {
       // Use first available model (backend will use default)
       const result = await createProblem(
-        "claude-sonnet-4-20250514", // Default model
+        "anthropic/claude-sonnet-4.5", // Default model
         user.apiKey,
         true, // autoGenerate
         undefined, // returnDummy
         undefined, // startFrom
-        selectedFocusAreaIds.length > 0 ? selectedFocusAreaIds : undefined,
+        selectedFocusAreaIds.length > 0 ? selectedFocusAreaIds : undefined
       );
       router.push(`/problem/${result.problemId}`);
     } catch (error) {
