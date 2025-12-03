@@ -17,18 +17,8 @@ export const validateModelBody = createMiddleware<{
   }
 
   try {
-    // Try to get the parsed JSON body
-    // For OpenAPI routes, the body might be validated already
-    // We'll try to access it via valid() first, then fall back to json()
-    let body: unknown;
-
-    try {
-      // Try to get validated body (for OpenAPI routes)
-      body = c.req.valid("json");
-    } catch {
-      // If that fails, try to parse the raw body
-      body = await c.req.json();
-    }
+    // Get the parsed JSON body
+    const body = await c.req.json();
 
     // Check if body has a model field
     if (

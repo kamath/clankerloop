@@ -34,7 +34,7 @@ export default function CreateProblemForm({
   const [returnDummy, setReturnDummy] = useState<boolean>(false);
   const [focusAreas, setFocusAreas] = useState<FocusArea[]>([]);
   const [selectedFocusAreaIds, setSelectedFocusAreaIds] = useState<string[]>(
-    [],
+    []
   );
   const [isLoadingFocusAreas, setIsLoadingFocusAreas] = useState(true);
 
@@ -88,7 +88,7 @@ export default function CreateProblemForm({
         autoGenerate,
         returnDummy,
         undefined, // startFrom
-        selectedFocusAreaIds.length > 0 ? selectedFocusAreaIds : undefined,
+        selectedFocusAreaIds.length > 0 ? selectedFocusAreaIds : undefined
       );
       router.push(`/problem/${problemId}`);
     } catch (error) {
