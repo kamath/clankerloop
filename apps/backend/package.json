@@ -8,7 +8,7 @@
     "start": "bun run src/index.ts",
     "lint": "eslint . --max-warnings 0 --fix",
     "check-types": "tsc --noEmit",
-	"build": "tsc --noEmit"
+    "build": "tsc --noEmit"
   },
   "exports": {
     ".": "./src/index.ts",
@@ -20,6 +20,7 @@
     "@hono/zod-openapi": "^0.18.0",
     "@posthog/ai": "^7.2.0",
     "@repo/api-types": "*",
+    "@workos-inc/node": "^7.75.1",
     "ai": "^5.0.104",
     "hono": "^4.7.0",
     "posthog-node": "^5.14.1",

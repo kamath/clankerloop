@@ -8,5 +8,5 @@ import type { OpenAPIHono } from "@hono/zod-openapi";
 // This provides type hints without needing to resolve the actual route implementations
 export type AppType = OpenAPIHono<{
   Bindings: Record<string, unknown>;
-  Variables: { userId: string };
+  Variables: { userId: string, isAdmin: boolean };
 }>;
