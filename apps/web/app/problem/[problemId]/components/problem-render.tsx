@@ -445,10 +445,6 @@ export default function ProblemRender({
               testCases={testCases}
               testCaseInputs={testCaseInputs}
               testCaseOutputs={testCaseOutputs}
-              isRunUserSolutionLoading={isRunUserSolutionLoading}
-              userSolutionError={userSolutionError}
-              userSolutionTestResults={userSolutionTestResults}
-              callRunUserSolution={callRunUserSolution}
               completedSteps={completedSteps}
               currentStep={currentStep}
               isGenerating={isGenerating}
@@ -565,6 +561,9 @@ export default function ProblemRender({
                 callRunCustomTests={callRunCustomTests}
                 onRunTestsRef={runCustomTestsRef}
                 onCanRunTestsChange={setCanRunCustomTests}
+                userSolutionTestResults={userSolutionTestResults}
+                isRunUserSolutionLoading={isRunUserSolutionLoading}
+                userSolutionError={userSolutionError}
               />
             </ResizablePanel>
           </ResizablePanelGroup>

@@ -1,10 +1,7 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useMemo } from "react";
 import { MessageResponse } from "@/components/ai-elements/message";
-import Loader from "@/components/client/loader";
 import { Badge } from "@/components/ui/badge";
 import {
   Loader2Icon,
@@ -44,24 +41,6 @@ interface NonAdminProblemViewProps {
   testCaseInputs: unknown[] | null | undefined;
   // Test case outputs (need to match with sample cases)
   testCaseOutputs: unknown[] | null | undefined;
-  // Run user solution hooks
-  isRunUserSolutionLoading: boolean;
-  userSolutionError: unknown;
-  userSolutionTestResults:
-    | Array<{
-        testCase: {
-          description: string;
-          isEdgeCase: boolean;
-        };
-        status: string;
-        expected?: unknown;
-        actual?: unknown;
-        error?: string;
-        stdout?: string;
-      }>
-    | null
-    | undefined;
-  callRunUserSolution: () => Promise<unknown>;
   // Generation status hooks
   completedSteps: GenerationStep[];
   currentStep: GenerationStep | null | undefined;
@@ -75,10 +54,6 @@ export default function NonAdminProblemView({
   testCases,
   testCaseInputs,
   testCaseOutputs,
-  isRunUserSolutionLoading,
-  userSolutionError,
-  userSolutionTestResults,
-  callRunUserSolution,
   completedSteps,
   currentStep,
   isGenerating,
@@ -258,109 +233,6 @@ export default function NonAdminProblemView({
           </div>
         </div>
       )}
-
-      {/* Test Results */}
-      <div className="space-y-3 border-t pt-4">
-        <h2 className="text-lg font-semibold">Test Results</h2>
-        {isRunUserSolutionLoading && (
-          <div className="flex items-center gap-2">
-            <Loader />
-            <span className="text-sm text-muted-foreground">
-              Running tests...
-            </span>
-          </div>
-        )}
-        {userSolutionError !== undefined && userSolutionError !== null && (
-          <Alert variant="destructive">
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>
-              {userSolutionError instanceof Error
-                ? userSolutionError.message
-                : typeof userSolutionError === "string"
-                  ? userSolutionError
-                  : JSON.stringify(userSolutionError)}
-            </AlertDescription>
-          </Alert>
-        )}
-        {userSolutionTestResults && Array.isArray(userSolutionTestResults) && (
-          <div className="space-y-2">
-            {userSolutionTestResults.map((testResult, i) => (
-              <div
-                key={`user-solution-test-result-${i}`}
-                className="border rounded-lg p-3 bg-muted/30"
-              >
-                <div className="text-xs font-medium text-muted-foreground mb-2">
-                  {testResult.testCase.description}
-                  {testResult.testCase.isEdgeCase && (
-                    <Badge variant="outline" className="ml-2">
-                      Edge Case
-                    </Badge>
-                  )}
-                </div>
-                {testResult.error ? (
-                  <Alert variant="destructive" className="py-2">
-                    <AlertTitle className="text-xs">Error</AlertTitle>
-                    <AlertDescription className="text-xs whitespace-pre-wrap">
-                      {testResult.error}
-                    </AlertDescription>
-                  </Alert>
-                ) : (
-                  <div
-                    className={`p-2 rounded text-xs font-mono ${
-                      testResult.status === "pass"
-                        ? "bg-green-500/20 border border-green-500/50"
-                        : testResult.status === "fail"
-                          ? "bg-yellow-500/20 border border-yellow-500/50"
-                          : "bg-red-500/20 border border-red-500/50"
-                    }`}
-                  >
-                    <div className="space-y-1">
-                      <div>
-                        <span className="text-muted-foreground">Status: </span>
-                        <span className="font-semibold">
-                          {testResult.status.toUpperCase()}
-                        </span>
-                      </div>
-                      {testResult.expected !== null &&
-                        testResult.expected !== undefined && (
-                          <div>
-                            <span className="text-muted-foreground">
-                              Expected:{" "}
-                            </span>
-                            <span className="font-semibold">
-                              {JSON.stringify(testResult.expected)}
-                            </span>
-                          </div>
-                        )}
-                      {testResult.actual !== null &&
-                        testResult.actual !== undefined && (
-                          <div>
-                            <span className="text-muted-foreground">
-                              Actual:{" "}
-                            </span>
-                            <span className="font-semibold">
-                              {JSON.stringify(testResult.actual)}
-                            </span>
-                          </div>
-                        )}
-                      {testResult.stdout && (
-                        <div className="mt-2 pt-2 border-t">
-                          <span className="text-muted-foreground">
-                            Stdout:{" "}
-                          </span>
-                          <pre className="text-xs mt-1 whitespace-pre-wrap">
-                            {testResult.stdout}
-                          </pre>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }

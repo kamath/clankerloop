@@ -6,6 +6,8 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { PlusIcon, XIcon } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import Loader from "@/components/client/loader";
 
 interface CustomTestInputsProps {
   testCases:
@@ -33,6 +35,23 @@ interface CustomTestInputsProps {
   problemId: string;
   onRunTestsRef?: React.MutableRefObject<(() => Promise<void>) | null>;
   onCanRunTestsChange?: (canRun: boolean) => void;
+  // Run Solution props
+  userSolutionTestResults:
+    | Array<{
+        testCase: {
+          description: string;
+          isEdgeCase: boolean;
+        };
+        status: string;
+        expected?: unknown;
+        actual?: unknown;
+        error?: string;
+        stdout?: string;
+      }>
+    | null
+    | undefined;
+  isRunUserSolutionLoading: boolean;
+  userSolutionError: unknown;
 }
 
 export default function CustomTestInputs({
@@ -45,12 +64,24 @@ export default function CustomTestInputs({
   problemId,
   onRunTestsRef,
   onCanRunTestsChange,
+  userSolutionTestResults,
+  isRunUserSolutionLoading,
+  userSolutionError,
 }: CustomTestInputsProps) {
+  const [viewMode, setViewMode] = useState<"custom" | "results">("custom");
   const [customTestCases, setCustomTestCases] = useState<
     Array<{ id: string; inputText: string }>
   >([{ id: `test-case-0`, inputText: "" }]);
   const [selectedTab, setSelectedTab] = useState("test-case-0");
   const hasInitializedCustomTestCases = useRef(false);
+
+  // Switch to results view when Run Solution results are available
+  useEffect(() => {
+    if (userSolutionTestResults && userSolutionTestResults.length > 0) {
+      setViewMode("results");
+      setSelectedTab("result-case-0");
+    }
+  }, [userSolutionTestResults]);
 
   // Reset initialization flag when problemId changes
   useEffect(() => {
@@ -171,208 +202,406 @@ export default function CustomTestInputs({
     }
   }, [customTestCases, onCanRunTestsChange]);
 
+  // Determine which test cases/results to show based on view mode
+  const showTestResults =
+    viewMode === "results" &&
+    userSolutionTestResults &&
+    userSolutionTestResults.length > 0;
+  const showCustomTests = viewMode === "custom";
+
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between p-2 border-b flex-shrink-0 bg-background">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">Testcase</span>
+    <div className="h-full flex flex-col overflow-hidden py-2">
+      {/* Header with View Toggle */}
+      <div className="flex items-center justify-between border-b flex-shrink-0 bg-background">
+        <div className="flex items-center gap-2 pb-2">
+          <span className="text-sm font-medium px-3">Test Results</span>
+          <div className="flex gap-1 border rounded-md p-0.5">
+            <Button
+              variant={viewMode === "custom" ? "default" : "ghost"}
+              size="sm"
+              className="h-6 px-2 text-xs"
+              onClick={() => {
+                setViewMode("custom");
+                if (customTestCases.length > 0) {
+                  setSelectedTab(customTestCases[0]?.id ?? "test-case-0");
+                }
+              }}
+            >
+              Custom Tests
+            </Button>
+            <Button
+              variant={viewMode === "results" ? "default" : "ghost"}
+              size="sm"
+              className="h-6 px-2 text-xs"
+              onClick={() => {
+                if (
+                  userSolutionTestResults &&
+                  userSolutionTestResults.length > 0
+                ) {
+                  setViewMode("results");
+                  setSelectedTab("result-case-0");
+                }
+              }}
+              disabled={
+                !userSolutionTestResults || userSolutionTestResults.length === 0
+              }
+            >
+              Submission Results
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Tabs */}
-      <Tabs
-        value={selectedTab}
-        onValueChange={setSelectedTab}
-        className="flex-1 flex flex-col overflow-hidden"
-      >
-        <TabsList className="justify-start rounded-none border-b bg-muted/30 p-0 h-auto">
+      {/* Loading state for Run Solution */}
+      {isRunUserSolutionLoading && (
+        <div className="flex items-center gap-2 p-3 border-b">
+          <Loader />
+          <span className="text-sm text-muted-foreground">
+            Running tests...
+          </span>
+        </div>
+      )}
+
+      {/* Error state for Run Solution */}
+      {userSolutionError !== undefined &&
+        userSolutionError !== null &&
+        !isRunUserSolutionLoading && (
+          <div className="p-3 border-b">
+            <Alert variant="destructive">
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>
+                {userSolutionError instanceof Error
+                  ? userSolutionError.message
+                  : typeof userSolutionError === "string"
+                    ? userSolutionError
+                    : JSON.stringify(userSolutionError)}
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+
+      {/* Custom Tests View */}
+      {showCustomTests && (
+        <Tabs
+          value={selectedTab}
+          onValueChange={setSelectedTab}
+          className="flex-1 flex flex-col overflow-hidden"
+        >
+          <TabsList className="justify-start rounded-none border-b bg-muted/30 p-0 h-auto">
+            {customTestCases.map((testCase, index) => {
+              const result =
+                customTestResults && customTestResults[index]
+                  ? customTestResults[index]
+                  : null;
+
+              const hasResult = result !== null;
+              const isPassing =
+                hasResult &&
+                !result.error &&
+                JSON.stringify(result.actual) ===
+                  JSON.stringify(result.expected);
+              const isFailing = hasResult && !isPassing;
+
+              return (
+                <TabsTrigger
+                  key={testCase.id}
+                  value={testCase.id}
+                  className={`relative rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:border-b-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none ${
+                    isPassing
+                      ? "text-green-600 data-[state=active]:text-green-600"
+                      : isFailing
+                        ? "text-red-600 data-[state=active]:text-red-600"
+                        : ""
+                  }`}
+                >
+                  <span>Case {index + 1}</span>
+                  {customTestCases.length > 1 && (
+                    <button
+                      className="ml-2 hover:bg-muted rounded p-0.5"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveTestCase(testCase.id);
+                      }}
+                    >
+                      <XIcon className="h-3 w-3" />
+                    </button>
+                  )}
+                </TabsTrigger>
+              );
+            })}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-auto px-2 py-2 rounded-none border-b-2 border-transparent"
+              onClick={handleAddTestCase}
+              disabled={customTestCases.length >= 10}
+            >
+              <PlusIcon className="h-4 w-4" /> Add Test Case
+            </Button>
+          </TabsList>
+
           {customTestCases.map((testCase, index) => {
+            let validationError: string | null = null;
+
+            if (testCase.inputText.trim()) {
+              try {
+                const parsed = JSON.parse(testCase.inputText);
+                if (!Array.isArray(parsed)) {
+                  validationError =
+                    "Input must be a JSON array of function arguments.";
+                }
+              } catch {
+                validationError =
+                  "Invalid JSON. Please enter a valid JSON array.";
+              }
+            }
+
             const result =
               customTestResults && customTestResults[index]
                 ? customTestResults[index]
                 : null;
 
-            const hasResult = result !== null;
-            const isPassing =
-              hasResult &&
-              !result.error &&
-              JSON.stringify(result.actual) === JSON.stringify(result.expected);
-            const isFailing = hasResult && !isPassing;
-
             return (
-              <TabsTrigger
+              <TabsContent
                 key={testCase.id}
                 value={testCase.id}
-                className={`relative rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:border-b-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none ${
-                  isPassing
-                    ? "text-green-600 data-[state=active]:text-green-600"
-                    : isFailing
-                      ? "text-red-600 data-[state=active]:text-red-600"
-                      : ""
-                }`}
+                className="flex-1 overflow-auto p-3 space-y-3 mt-0"
               >
-                <span>Case {index + 1}</span>
-                {customTestCases.length > 1 && (
-                  <button
-                    className="ml-2 hover:bg-muted rounded p-0.5"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemoveTestCase(testCase.id);
-                    }}
-                  >
-                    <XIcon className="h-3 w-3" />
-                  </button>
+                <p className="text-xs text-muted-foreground">
+                  Enter a JSON array of function arguments. For example, a
+                  function signature of function functionName(a: number, b:
+                  string): number should have an input of:{" "}
+                  <code className="bg-muted px-1 rounded">
+                    [1, &quot;hello&quot;]
+                  </code>
+                </p>
+
+                <Textarea
+                  placeholder="[1, 2, 3]"
+                  value={testCase.inputText}
+                  onChange={(e) => {
+                    setCustomTestCases((prev) =>
+                      prev.map((tc) =>
+                        tc.id === testCase.id
+                          ? { ...tc, inputText: e.target.value }
+                          : tc
+                      )
+                    );
+                  }}
+                  className="font-mono text-sm min-h-[80px] w-full"
+                />
+
+                {validationError && (
+                  <Alert variant="destructive" className="py-2">
+                    <AlertDescription className="text-xs">
+                      {validationError}
+                    </AlertDescription>
+                  </Alert>
                 )}
-              </TabsTrigger>
+
+                {result && (
+                  <div className="space-y-1 border-t pt-2">
+                    <div className="text-xs font-medium mb-1">Result:</div>
+                    <div className="space-y-1 text-xs font-mono">
+                      {result.error ? (
+                        <Alert variant="destructive" className="py-2">
+                          <AlertTitle className="text-xs">Error</AlertTitle>
+                          <AlertDescription className="text-xs whitespace-pre-wrap">
+                            {result.error}
+                          </AlertDescription>
+                        </Alert>
+                      ) : (
+                        <div
+                          className={`p-2 rounded ${
+                            JSON.stringify(result.actual) ===
+                            JSON.stringify(result.expected)
+                              ? "bg-green-500/20 border border-green-500/50"
+                              : "bg-yellow-500/20 border border-yellow-500/50"
+                          }`}
+                        >
+                          <div className="space-y-1">
+                            {result.input !== null &&
+                              result.input !== undefined && (
+                                <div>
+                                  <span className="text-muted-foreground">
+                                    Input:{" "}
+                                  </span>
+                                  <span className="font-semibold">
+                                    {JSON.stringify(result.input)}
+                                  </span>
+                                </div>
+                              )}
+                            {result.expected !== null &&
+                              result.expected !== undefined && (
+                                <div>
+                                  <span className="text-muted-foreground">
+                                    Expected:{" "}
+                                  </span>
+                                  <span className="font-semibold">
+                                    {JSON.stringify(result.expected)}
+                                  </span>
+                                </div>
+                              )}
+                            {result.actual !== null &&
+                              result.actual !== undefined && (
+                                <div>
+                                  <span className="text-muted-foreground">
+                                    Actual:{" "}
+                                  </span>
+                                  <span className="font-semibold">
+                                    {JSON.stringify(result.actual)}
+                                  </span>
+                                </div>
+                              )}
+                            {result.stdout && (
+                              <div className="mt-2 pt-2 border-t">
+                                <span className="text-muted-foreground">
+                                  Stdout:{" "}
+                                </span>
+                                <pre className="text-xs mt-1 whitespace-pre-wrap">
+                                  {result.stdout}
+                                </pre>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
             );
           })}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-auto px-2 py-2 rounded-none border-b-2 border-transparent"
-            onClick={handleAddTestCase}
-            disabled={customTestCases.length >= 10}
-          >
-            <PlusIcon className="h-4 w-4" /> Add Test Case
-          </Button>
-        </TabsList>
+        </Tabs>
+      )}
 
-        {customTestCases.map((testCase, index) => {
-          let validationError: string | null = null;
+      {/* Test Results View */}
+      {showTestResults && (
+        <Tabs
+          value={selectedTab}
+          onValueChange={setSelectedTab}
+          className="flex-1 flex flex-col overflow-hidden"
+        >
+          <TabsList className="justify-start rounded-none border-b bg-muted/30 p-0 h-auto">
+            {userSolutionTestResults!.map((testResult, index) => {
+              const isPassing = testResult.status === "pass";
+              const isFailing =
+                testResult.status === "fail" || testResult.status === "error";
 
-          if (testCase.inputText.trim()) {
-            try {
-              const parsed = JSON.parse(testCase.inputText);
-              if (!Array.isArray(parsed)) {
-                validationError =
-                  "Input must be a JSON array of function arguments.";
-              }
-            } catch {
-              validationError =
-                "Invalid JSON. Please enter a valid JSON array.";
-            }
-          }
+              return (
+                <TabsTrigger
+                  key={`result-case-${index}`}
+                  value={`result-case-${index}`}
+                  className={`relative rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:border-b-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none ${
+                    isPassing
+                      ? "text-green-600 data-[state=active]:text-green-600"
+                      : isFailing
+                        ? "text-red-600 data-[state=active]:text-red-600"
+                        : ""
+                  }`}
+                >
+                  <span>Case {index + 1}</span>
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
 
-          const result =
-            customTestResults && customTestResults[index]
-              ? customTestResults[index]
-              : null;
-
-          return (
+          {userSolutionTestResults!.map((testResult, index) => (
             <TabsContent
-              key={testCase.id}
-              value={testCase.id}
+              key={`result-case-${index}`}
+              value={`result-case-${index}`}
               className="flex-1 overflow-auto p-3 space-y-3 mt-0"
             >
-              <p className="text-xs text-muted-foreground">
-                Enter a JSON array of function arguments. For example, a
-                function signature of function functionName(a: number, b:
-                string): number should have an input of:{" "}
-                <code className="bg-muted px-1 rounded">
-                  [1, &quot;hello&quot;]
-                </code>
-              </p>
+              {/* Test Case Description */}
+              <div className="space-y-2">
+                <div className="text-sm font-medium mb-1">
+                  Test Case {index + 1}
+                  {testResult.testCase.isEdgeCase && (
+                    <Badge variant="outline" className="ml-2">
+                      Edge Case
+                    </Badge>
+                  )}
+                </div>
+                <div className="text-sm text-muted-foreground mb-2">
+                  {testResult.testCase.description}
+                </div>
+              </div>
 
-              <Textarea
-                placeholder="[1, 2, 3]"
-                value={testCase.inputText}
-                onChange={(e) => {
-                  setCustomTestCases((prev) =>
-                    prev.map((tc) =>
-                      tc.id === testCase.id
-                        ? { ...tc, inputText: e.target.value }
-                        : tc
-                    )
-                  );
-                }}
-                className="font-mono text-sm min-h-[80px] w-full"
-              />
-
-              {validationError && (
-                <Alert variant="destructive" className="py-2">
-                  <AlertDescription className="text-xs">
-                    {validationError}
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {result && (
-                <div className="space-y-1 border-t pt-2">
-                  <div className="text-xs font-medium mb-1">Result:</div>
-                  <div className="space-y-1 text-xs font-mono">
-                    {result.error ? (
-                      <Alert variant="destructive" className="py-2">
-                        <AlertTitle className="text-xs">Error</AlertTitle>
-                        <AlertDescription className="text-xs whitespace-pre-wrap">
-                          {result.error}
-                        </AlertDescription>
-                      </Alert>
-                    ) : (
-                      <div
-                        className={`p-2 rounded ${
-                          JSON.stringify(result.actual) ===
-                          JSON.stringify(result.expected)
-                            ? "bg-green-500/20 border border-green-500/50"
-                            : "bg-yellow-500/20 border border-yellow-500/50"
-                        }`}
-                      >
-                        <div className="space-y-1">
-                          {result.input !== null &&
-                            result.input !== undefined && (
-                              <div>
-                                <span className="text-muted-foreground">
-                                  Input:{" "}
-                                </span>
-                                <span className="font-semibold">
-                                  {JSON.stringify(result.input)}
-                                </span>
-                              </div>
-                            )}
-                          {result.expected !== null &&
-                            result.expected !== undefined && (
-                              <div>
-                                <span className="text-muted-foreground">
-                                  Expected:{" "}
-                                </span>
-                                <span className="font-semibold">
-                                  {JSON.stringify(result.expected)}
-                                </span>
-                              </div>
-                            )}
-                          {result.actual !== null &&
-                            result.actual !== undefined && (
-                              <div>
-                                <span className="text-muted-foreground">
-                                  Actual:{" "}
-                                </span>
-                                <span className="font-semibold">
-                                  {JSON.stringify(result.actual)}
-                                </span>
-                              </div>
-                            )}
-                          {result.stdout && (
-                            <div className="mt-2 pt-2 border-t">
+              {/* Test Result */}
+              <div className="space-y-1 border-t pt-2">
+                <div className="text-xs font-medium mb-1">Result:</div>
+                <div className="space-y-1 text-xs font-mono">
+                  {testResult.error ? (
+                    <Alert variant="destructive" className="py-2">
+                      <AlertTitle className="text-xs">Error</AlertTitle>
+                      <AlertDescription className="text-xs whitespace-pre-wrap">
+                        {testResult.error}
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <div
+                      className={`p-2 rounded ${
+                        testResult.status === "pass"
+                          ? "bg-green-500/20 border border-green-500/50"
+                          : testResult.status === "fail"
+                            ? "bg-yellow-500/20 border border-yellow-500/50"
+                            : "bg-red-500/20 border border-red-500/50"
+                      }`}
+                    >
+                      <div className="space-y-1">
+                        <div>
+                          <span className="text-muted-foreground">
+                            Status:{" "}
+                          </span>
+                          <span className="font-semibold">
+                            {testResult.status.toUpperCase()}
+                          </span>
+                        </div>
+                        {testResult.expected !== null &&
+                          testResult.expected !== undefined && (
+                            <div>
                               <span className="text-muted-foreground">
-                                Stdout:{" "}
+                                Expected:{" "}
                               </span>
-                              <pre className="text-xs mt-1 whitespace-pre-wrap">
-                                {result.stdout}
-                              </pre>
+                              <span className="font-semibold">
+                                {JSON.stringify(testResult.expected)}
+                              </span>
                             </div>
                           )}
-                        </div>
+                        {testResult.actual !== null &&
+                          testResult.actual !== undefined && (
+                            <div>
+                              <span className="text-muted-foreground">
+                                Actual:{" "}
+                              </span>
+                              <span className="font-semibold">
+                                {JSON.stringify(testResult.actual)}
+                              </span>
+                            </div>
+                          )}
+                        {testResult.stdout && (
+                          <div className="mt-2 pt-2 border-t">
+                            <span className="text-muted-foreground">
+                              Stdout:{" "}
+                            </span>
+                            <pre className="text-xs mt-1 whitespace-pre-wrap">
+                              {testResult.stdout}
+                            </pre>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </TabsContent>
-          );
-        })}
-      </Tabs>
+          ))}
+        </Tabs>
+      )}
 
-      {customTestsError !== undefined &&
+      {/* Custom Tests Error */}
+      {showCustomTests &&
+        customTestsError !== undefined &&
         customTestsError !== null &&
         !isRunCustomTestsLoading && (
           <div className="p-3 border-t">
