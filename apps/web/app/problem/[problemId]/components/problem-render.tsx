@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/select";
 import AdminCollapsibles from "./admin-collapsibles";
 import NonAdminProblemView from "./non-admin-problem-view";
+import CustomTestInputs from "./custom-test-inputs";
 
 export default function ProblemRender({
   problemId,
@@ -438,10 +439,6 @@ export default function ProblemRender({
             />
           ) : (
             <NonAdminProblemView
-              problemId={problemId}
-              user={user}
-              userSolution={userSolution}
-              language={language}
               problemText={problemText}
               testCases={testCases}
               testCaseInputs={testCaseInputs}
@@ -450,72 +447,83 @@ export default function ProblemRender({
               userSolutionError={userSolutionError}
               userSolutionTestResults={userSolutionTestResults}
               callRunUserSolution={callRunUserSolution}
-              isRunCustomTestsLoading={isRunCustomTestsLoading}
-              customTestsError={customTestsError}
-              customTestResults={customTestResults}
-              callRunCustomTests={callRunCustomTests}
               completedSteps={completedSteps}
               currentStep={currentStep}
               isGenerating={isGenerating}
               isFailed={isFailed}
               generationError={generationError}
-              problemModel={problemModel}
             />
           )}
         </ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel defaultSize={50} className="min-h-0 flex flex-col">
-          <div className="flex items-center justify-between p-2 border-b flex-shrink-0">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">Language:</span>
-              <Select
-                value={language}
-                onValueChange={(value: CodeGenLanguage) => setLanguage(value)}
-                disabled={isStarterCodeLoading}
-              >
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Select language" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="typescript">TypeScript</SelectItem>
-                  <SelectItem value="python">Python</SelectItem>
-                </SelectContent>
-              </Select>
-              {isStarterCodeLoading && (
-                <Loader2Icon className="h-4 w-4 animate-spin" />
-              )}
-            </div>
-            {starterCodeError && (
-              <span className="text-xs text-destructive">
-                Failed to load starter code
-              </span>
-            )}
-          </div>
-          <div className="flex-1 min-h-0">
-            {userSolution ? (
-              <Editor
-                height="100%"
-                width="100%"
-                defaultLanguage={language}
-                language={language}
-                value={userSolution ?? ""}
-                onChange={(value) => setUserSolution(value ?? null)}
-                options={{
-                  fontSize: 14,
-                  minimap: {
-                    enabled: false,
-                  },
-                  readOnly: !!(
-                    isStarterCodeLoading ||
-                    (problemText?.functionSignatureSchema && !starterCode)
-                  ),
-                }}
-                loading={<Skeleton className="h-full w-full" />}
+          <ResizablePanelGroup direction="vertical" className="flex-1">
+            <ResizablePanel defaultSize={65} className="min-h-0 flex flex-col">
+              <div className="flex items-center justify-between p-2 border-b flex-shrink-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">Language:</span>
+                  <Select
+                    value={language}
+                    onValueChange={(value: CodeGenLanguage) => setLanguage(value)}
+                    disabled={isStarterCodeLoading}
+                  >
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Select language" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="typescript">TypeScript</SelectItem>
+                      <SelectItem value="python">Python</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {isStarterCodeLoading && (
+                    <Loader2Icon className="h-4 w-4 animate-spin" />
+                  )}
+                </div>
+                {starterCodeError && (
+                  <span className="text-xs text-destructive">
+                    Failed to load starter code
+                  </span>
+                )}
+              </div>
+              <div className="flex-1 min-h-0">
+                {userSolution ? (
+                  <Editor
+                    height="100%"
+                    width="100%"
+                    defaultLanguage={language}
+                    language={language}
+                    value={userSolution ?? ""}
+                    onChange={(value) => setUserSolution(value ?? null)}
+                    options={{
+                      fontSize: 14,
+                      minimap: {
+                        enabled: false,
+                      },
+                      readOnly: !!(
+                        isStarterCodeLoading ||
+                        (problemText?.functionSignatureSchema && !starterCode)
+                      ),
+                    }}
+                    loading={<Skeleton className="h-full w-full" />}
+                  />
+                ) : (
+                  <Skeleton className="h-full w-full" />
+                )}
+              </div>
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={35} className="min-h-0">
+              <CustomTestInputs
+                problemId={problemId}
+                testCases={testCases}
+                testCaseInputs={testCaseInputs}
+                isRunCustomTestsLoading={isRunCustomTestsLoading}
+                customTestsError={customTestsError}
+                customTestResults={customTestResults}
+                callRunCustomTests={callRunCustomTests}
               />
-            ) : (
-              <Skeleton className="h-full w-full" />
-            )}
-          </div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
         </ResizablePanel>
       </ResizablePanelGroup>
     </div>
