@@ -7,6 +7,8 @@ import {
   boolean,
   jsonb,
   timestamp,
+  integer,
+  unique,
 } from "drizzle-orm/pg-core";
 import type { FunctionSignatureSchema } from "@repo/api-types";
 
@@ -32,6 +34,34 @@ export const problems = pgTable("problems", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Focus Areas
+export const focusAreas = pgTable("focus_areas", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull().unique(),
+  slug: text("slug").notNull().unique(),
+  description: text("description"),
+  promptGuidance: text("prompt_guidance").notNull(),
+  displayOrder: integer("display_order").default(0),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const problemFocusAreas = pgTable(
+  "problem_focus_areas",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    problemId: uuid("problem_id")
+      .notNull()
+      .references(() => problems.id, { onDelete: "cascade" }),
+    focusAreaId: uuid("focus_area_id")
+      .notNull()
+      .references(() => focusAreas.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [unique().on(table.problemId, table.focusAreaId)],
+);
+
 export const testCases = pgTable("test_cases", {
   id: uuid("id").primaryKey().defaultRandom(),
   problemId: uuid("problem_id")
@@ -54,6 +84,7 @@ export const modelsRelations = relations(models, ({ many }) => ({
 
 export const problemsRelations = relations(problems, ({ many, one }) => ({
   testCases: many(testCases),
+  problemFocusAreas: many(problemFocusAreas),
   generatedByModel: one(models, {
     fields: [problems.generatedByModelId],
     references: [models.id],
@@ -69,6 +100,24 @@ export const problemsRelations = relations(problems, ({ many, one }) => ({
     relationName: "harderThan",
   }),
 }));
+
+export const focusAreasRelations = relations(focusAreas, ({ many }) => ({
+  problemFocusAreas: many(problemFocusAreas),
+}));
+
+export const problemFocusAreasRelations = relations(
+  problemFocusAreas,
+  ({ one }) => ({
+    problem: one(problems, {
+      fields: [problemFocusAreas.problemId],
+      references: [problems.id],
+    }),
+    focusArea: one(focusAreas, {
+      fields: [problemFocusAreas.focusAreaId],
+      references: [focusAreas.id],
+    }),
+  }),
+);
 
 export const testCasesRelations = relations(testCases, ({ one }) => ({
   problem: one(problems, {
@@ -119,3 +168,7 @@ export type TestCase = typeof testCases.$inferSelect;
 export type NewTestCase = typeof testCases.$inferInsert;
 export type GenerationJob = typeof generationJobs.$inferSelect;
 export type NewGenerationJob = typeof generationJobs.$inferInsert;
+export type FocusArea = typeof focusAreas.$inferSelect;
+export type NewFocusArea = typeof focusAreas.$inferInsert;
+export type ProblemFocusArea = typeof problemFocusAreas.$inferSelect;
+export type NewProblemFocusArea = typeof problemFocusAreas.$inferInsert;

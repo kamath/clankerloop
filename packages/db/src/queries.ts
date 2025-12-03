@@ -1,10 +1,12 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, inArray } from "drizzle-orm";
 import defaultDb, { type Database } from "../index";
 import {
   models,
   problems,
   testCases,
   generationJobs,
+  focusAreas,
+  problemFocusAreas,
   type Model,
   type Problem,
   type TestCase,
@@ -13,6 +15,10 @@ import {
   type NewTestCase,
   type GenerationJob,
   type NewGenerationJob,
+  type FocusArea,
+  type NewFocusArea,
+  type ProblemFocusArea,
+  type NewProblemFocusArea,
 } from "./schema";
 
 // Re-export types for convenience
@@ -25,6 +31,10 @@ export type {
   NewTestCase,
   GenerationJob,
   NewGenerationJob,
+  FocusArea,
+  NewFocusArea,
+  ProblemFocusArea,
+  NewProblemFocusArea,
 };
 
 // Re-export Database type
@@ -360,4 +370,54 @@ export async function markStepComplete(
       updatedAt: new Date(),
     })
     .where(eq(generationJobs.id, jobId));
+}
+
+// Focus Area functions
+
+export async function listFocusAreas(db?: Database): Promise<FocusArea[]> {
+  const database = getDb(db);
+  return database.query.focusAreas.findMany({
+    where: eq(focusAreas.isActive, true),
+    orderBy: focusAreas.displayOrder,
+  });
+}
+
+export async function getFocusAreasByIds(
+  ids: string[],
+  db?: Database,
+): Promise<FocusArea[]> {
+  if (ids.length === 0) return [];
+  const database = getDb(db);
+  return database.query.focusAreas.findMany({
+    where: inArray(focusAreas.id, ids),
+  });
+}
+
+export async function getFocusAreasForProblem(
+  problemId: string,
+  db?: Database,
+): Promise<FocusArea[]> {
+  const database = getDb(db);
+  const links = await database.query.problemFocusAreas.findMany({
+    where: eq(problemFocusAreas.problemId, problemId),
+    with: {
+      focusArea: true,
+    },
+  });
+  return links.map((link) => link.focusArea);
+}
+
+export async function linkFocusAreasToProblem(
+  problemId: string,
+  focusAreaIds: string[],
+  db?: Database,
+): Promise<void> {
+  if (focusAreaIds.length === 0) return;
+  const database = getDb(db);
+  await database.insert(problemFocusAreas).values(
+    focusAreaIds.map((focusAreaId) => ({
+      problemId,
+      focusAreaId,
+    })),
+  );
 }

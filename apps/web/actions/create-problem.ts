@@ -7,6 +7,7 @@ export async function createProblem(
   autoGenerate: boolean = true,
   returnDummy?: boolean,
   startFrom?: StartFrom,
+  focusAreaIds?: string[],
 ) {
   const queryParams = new URLSearchParams({
     autoGenerate: autoGenerate.toString(),
@@ -17,6 +18,8 @@ export async function createProblem(
       model,
       ...(returnDummy !== undefined && { returnDummy }),
       ...(startFrom !== undefined && { startFrom }),
+      ...(focusAreaIds !== undefined &&
+        focusAreaIds.length > 0 && { focusAreaIds }),
     },
     encryptedUserId,
   );

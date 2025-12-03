@@ -33,6 +33,7 @@ type WorkflowParams = {
     problemText: string;
     direction: "easier" | "harder" | "similar";
   }; // For difficulty adjustment or regeneration
+  focusAreaGuidance?: string; // Optional: guidance for focus areas
 };
 
 export class ProblemGenerationWorkflow extends WorkflowEntrypoint<
@@ -40,8 +41,15 @@ export class ProblemGenerationWorkflow extends WorkflowEntrypoint<
   WorkflowParams
 > {
   async run(event: WorkflowEvent<WorkflowParams>, step: WorkflowStep) {
-    const { jobId, problemId, model, returnDummy, startingStep, baseProblem } =
-      event.payload;
+    const {
+      jobId,
+      problemId,
+      model,
+      returnDummy,
+      startingStep,
+      baseProblem,
+      focusAreaGuidance,
+    } = event.payload;
 
     // Create database instance from environment
     const db = createDb(this.env.DATABASE_URL);
@@ -85,6 +93,7 @@ export class ProblemGenerationWorkflow extends WorkflowEntrypoint<
             false,
             returnDummy,
             baseProblem,
+            focusAreaGuidance,
           );
           await markStepComplete(jobId, "generateProblemText", db);
         });

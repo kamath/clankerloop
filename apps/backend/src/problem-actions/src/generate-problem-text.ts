@@ -15,6 +15,7 @@ export async function generateProblemText(
     problemText: string;
     direction: "easier" | "harder" | "similar";
   },
+  focusAreaGuidance?: string,
 ) {
   if (forceError) {
     throw new Error("Force error: generateObject call skipped");
@@ -81,15 +82,22 @@ If using custom types, THEY MUST BE DEFINED INLINE -- for example,
 `;
       }
     } else {
-      prompt = `Generate a coding problem for a LeetCode-style platform. ONLY return the problem text, no other text.
-	DO NOT INCLUDE TEST CASES. JUST THE PROBLEM TEXT.
-	DO NOT INCLUDE EXAMPLE INPUTS AND OUTPUTS.
-	DO NOT INCLUDE ANYTHING BUT THE PROBLEM TEXT.
-	Generate a function signature for the function using TypeScript types.
-	If using custom types, THEY MUST BE DEFINED INLINE -- for example,
+      // Build focus area section if guidance is provided
+      const focusAreaSection = focusAreaGuidance
+        ? `\n\nFOCUS AREA REQUIREMENTS:\n${focusAreaGuidance}\n\nThe problem you generate MUST satisfy the focus area requirements above.`
+        : "";
 
-	(nums: number[], k: number, customType: {something: string; anotherThing: number}): number
-	`;
+      prompt = `Generate a coding problem for a LeetCode-style platform.${focusAreaSection}
+
+ONLY return the problem text, no other text.
+DO NOT INCLUDE TEST CASES. JUST THE PROBLEM TEXT.
+DO NOT INCLUDE EXAMPLE INPUTS AND OUTPUTS.
+DO NOT INCLUDE ANYTHING BUT THE PROBLEM TEXT.
+Generate a function signature for the function using TypeScript types.
+If using custom types, THEY MUST BE DEFINED INLINE -- for example,
+
+(nums: number[], k: number, customType: {something: string; anotherThing: number}): number
+`;
     }
 
     const result = await generateObject({

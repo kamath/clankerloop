@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { MessageResponse } from "@/components/ai-elements/message";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,11 +9,21 @@ import {
   CheckCircle2Icon,
   XCircleIcon,
   ClockIcon,
+  ChevronDownIcon,
 } from "lucide-react";
 import type { GenerationStep } from "@/hooks/use-problem";
 import { useRouter } from "next/navigation";
 import { createProblem } from "@/actions/create-problem";
 import { ClientFacingUserObject } from "@/lib/auth-types";
+import { listFocusAreas } from "@/actions/list-focus-areas";
+import { getProblemFocusAreas } from "@/actions/get-problem-focus-areas";
+import { FocusAreaSelector } from "@/components/focus-area-selector";
+import type { FocusArea } from "@repo/api-types";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 // Step order matching backend STEP_ORDER
 const STEP_ORDER: GenerationStep[] = [
@@ -76,6 +86,73 @@ export default function NonAdminProblemView({
   const router = useRouter();
   const [isAdjustingDifficulty, setIsAdjustingDifficulty] = useState(false);
   const [isRegeneratingSimilar, setIsRegeneratingSimilar] = useState(false);
+  const [focusAreasOpen, setFocusAreasOpen] = useState(false);
+
+  // Focus areas state
+  const [allFocusAreas, setAllFocusAreas] = useState<FocusArea[]>([]);
+  const [problemFocusAreas, setProblemFocusAreas] = useState<FocusArea[]>([]);
+  const [selectedFocusAreaIds, setSelectedFocusAreaIds] = useState<string[]>(
+    [],
+  );
+  const [isLoadingFocusAreas, setIsLoadingFocusAreas] = useState(true);
+  const [isRegeneratingWithFocusAreas, setIsRegeneratingWithFocusAreas] =
+    useState(false);
+  const [focusAreasChanged, setFocusAreasChanged] = useState(false);
+
+  // Load focus areas
+  useEffect(() => {
+    async function loadFocusAreas() {
+      try {
+        const [allAreas, problemAreas] = await Promise.all([
+          listFocusAreas(user.apiKey),
+          getProblemFocusAreas(problemId, user.apiKey),
+        ]);
+        setAllFocusAreas(allAreas);
+        setProblemFocusAreas(problemAreas.focusAreas);
+        setSelectedFocusAreaIds(problemAreas.focusAreas.map((fa) => fa.id));
+      } catch (error) {
+        console.error("Failed to load focus areas:", error);
+      } finally {
+        setIsLoadingFocusAreas(false);
+      }
+    }
+    loadFocusAreas();
+  }, [problemId, user.apiKey]);
+
+  // Track if focus areas have changed from initial
+  const handleFocusAreaChange = useCallback(
+    (newIds: string[]) => {
+      setSelectedFocusAreaIds(newIds);
+      const originalIds = problemFocusAreas.map((fa) => fa.id).sort();
+      const sortedNewIds = [...newIds].sort();
+      const hasChanged =
+        originalIds.length !== sortedNewIds.length ||
+        originalIds.some((id, idx) => id !== sortedNewIds[idx]);
+      setFocusAreasChanged(hasChanged);
+    },
+    [problemFocusAreas],
+  );
+
+  const handleRegenerateWithFocusAreas = async () => {
+    if (!selectedModel) return;
+    setIsRegeneratingWithFocusAreas(true);
+    try {
+      const result = await createProblem(
+        selectedModel,
+        user.apiKey,
+        true,
+        undefined,
+        undefined,
+        selectedFocusAreaIds.length > 0 ? selectedFocusAreaIds : undefined,
+      );
+      router.push(`/problem/${result.problemId}`);
+    } catch (error) {
+      console.error("Failed to regenerate with focus areas:", error);
+    } finally {
+      setIsRegeneratingWithFocusAreas(false);
+    }
+  };
+
   // Filter to sample test cases only
   const sampleTestCases = testCases
     ? testCases.filter((tc) => tc.isSampleCase === true)
@@ -236,6 +313,87 @@ export default function NonAdminProblemView({
   return (
     <div className="h-full overflow-auto p-4 flex flex-col gap-6">
       <TopLevelStatusIndicator />
+
+      {/* Focus Areas Section */}
+      <Collapsible
+        open={focusAreasOpen}
+        onOpenChange={setFocusAreasOpen}
+        className="border rounded-lg p-3 bg-muted/50"
+      >
+        <CollapsibleTrigger className="w-full">
+          <div className="flex items-center justify-between gap-2 w-full">
+            <div className="flex items-center gap-2">
+              <ChevronDownIcon
+                className={`h-4 w-4 transition-transform ${
+                  focusAreasOpen ? "rotate-0" : "-rotate-90"
+                }`}
+              />
+              <h3 className="text-sm font-medium">Focus Areas</h3>
+              {!isLoadingFocusAreas && problemFocusAreas.length > 0 && (
+                <Badge variant="outline" className="text-xs">
+                  {problemFocusAreas.length} selected
+                </Badge>
+              )}
+              {!isLoadingFocusAreas && problemFocusAreas.length === 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  Random
+                </Badge>
+              )}
+            </div>
+          </div>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-3 pt-3">
+          {isLoadingFocusAreas ? (
+            <div className="text-sm text-muted-foreground">
+              Loading focus areas...
+            </div>
+          ) : (
+            <>
+              {problemFocusAreas.length > 0 && (
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">
+                    Current focus areas:
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {problemFocusAreas.map((fa) => (
+                      <Badge key={fa.id} variant="default" className="text-xs">
+                        {fa.name}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="space-y-2">
+                <div className="text-xs text-muted-foreground">
+                  Generate new problem with different focus areas:
+                </div>
+                <FocusAreaSelector
+                  focusAreas={allFocusAreas}
+                  selectedIds={selectedFocusAreaIds}
+                  onChange={handleFocusAreaChange}
+                  disabled={isRegeneratingWithFocusAreas || isGenerating}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRegenerateWithFocusAreas}
+                  disabled={
+                    !focusAreasChanged ||
+                    isRegeneratingWithFocusAreas ||
+                    !selectedModel ||
+                    isGenerating
+                  }
+                  className="w-full"
+                >
+                  {isRegeneratingWithFocusAreas
+                    ? "Creating..."
+                    : "Generate New Problem with Selected Focus Areas"}
+                </Button>
+              </div>
+            </>
+          )}
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Adjust Difficulty Buttons */}
       <div className="flex gap-2 w-full">

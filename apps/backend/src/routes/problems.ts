@@ -36,6 +36,11 @@ import {
   getModelForProblem,
   updateJobStatus,
   markStepComplete,
+  listFocusAreas,
+  getFocusAreasByIds,
+  getFocusAreasForProblem,
+  linkFocusAreasToProblem,
+  type FocusArea,
 } from "@repo/db";
 import { STEP_ORDER, type GenerationStep } from "../queue/types";
 import {
@@ -62,6 +67,8 @@ import {
   getGenerationStatusRoute,
   getWorkflowStatusRoute,
   getProblemModelRoute,
+  listFocusAreasRoute,
+  getProblemFocusAreasRoute,
 } from "./problems.routes";
 
 const problems = new OpenAPIHono<{
@@ -123,6 +130,24 @@ async function shouldReturnIdempotentError(
   return isCompleted || isInProgress;
 }
 
+// Helper to build focus area guidance string from focus areas
+function buildFocusAreaGuidance(focusAreas: FocusArea[]): string {
+  if (focusAreas.length === 0) {
+    return ""; // No guidance = AI chooses freely
+  }
+
+  if (focusAreas.length === 1 && focusAreas[0]) {
+    return focusAreas[0].promptGuidance;
+  }
+
+  // Multiple focus areas: combine guidance
+  const guidanceList = focusAreas
+    .map((fa, idx) => `${idx + 1}. ${fa.name}: ${fa.promptGuidance}`)
+    .join("\n");
+
+  return `The problem should incorporate ONE OR MORE of the following focus areas:\n${guidanceList}\n\nChoose the most appropriate combination that creates a coherent, interesting problem.`;
+}
+
 // Helper to start workflow if autoGenerate is enabled (for problem creation)
 async function startWorkflowIfAuto(
   c: Context<{
@@ -137,6 +162,7 @@ async function startWorkflowIfAuto(
     problemText: string;
     direction: "easier" | "harder" | "similar";
   },
+  focusAreaGuidance?: string,
 ): Promise<string | null> {
   if (!autoGenerate) return null;
 
@@ -155,6 +181,7 @@ async function startWorkflowIfAuto(
       model: model || "",
       returnDummy,
       baseProblem,
+      focusAreaGuidance,
     },
   });
 
@@ -309,6 +336,17 @@ problems.openapi(createProblemRoute, async (c) => {
   const modelId = await getOrCreateModel(body.model, db);
   await updateProblem(problemId, { generatedByModelId: modelId }, db);
 
+  // Handle focus areas
+  let focusAreaGuidance: string | undefined;
+  if (body.focusAreaIds && body.focusAreaIds.length > 0) {
+    // Link focus areas to problem
+    await linkFocusAreasToProblem(problemId, body.focusAreaIds, db);
+
+    // Get full focus area data and build guidance
+    const selectedFocusAreas = await getFocusAreasByIds(body.focusAreaIds, db);
+    focusAreaGuidance = buildFocusAreaGuidance(selectedFocusAreas);
+  }
+
   const autoGenerate = query.autoGenerate !== "false";
   const jobId = await startWorkflowIfAuto(
     c,
@@ -317,6 +355,7 @@ problems.openapi(createProblemRoute, async (c) => {
     autoGenerate,
     body.returnDummy,
     baseProblem,
+    focusAreaGuidance,
   );
 
   return c.json({ success: true as const, data: { problemId, jobId } }, 200);
@@ -1256,6 +1295,37 @@ problems.openapi(getProblemModelRoute, async (c) => {
   const { problemId } = c.req.valid("param");
   const modelName = await getModelForProblem(problemId, db);
   return c.json({ success: true as const, data: { model: modelName } }, 200);
+});
+
+// ============== Focus Areas Routes ==============
+
+problems.openapi(listFocusAreasRoute, async (c) => {
+  const db = c.get("db");
+  const focusAreas = await listFocusAreas(db);
+  // Map to API schema (exclude fields not in schema)
+  const data = focusAreas.map((fa) => ({
+    id: fa.id,
+    name: fa.name,
+    slug: fa.slug,
+    description: fa.description,
+    displayOrder: fa.displayOrder,
+  }));
+  return c.json({ success: true as const, data }, 200);
+});
+
+problems.openapi(getProblemFocusAreasRoute, async (c) => {
+  const db = c.get("db");
+  const { problemId } = c.req.valid("param");
+  const focusAreas = await getFocusAreasForProblem(problemId, db);
+  // Map to API schema (exclude fields not in schema)
+  const data = focusAreas.map((fa) => ({
+    id: fa.id,
+    name: fa.name,
+    slug: fa.slug,
+    description: fa.description,
+    displayOrder: fa.displayOrder,
+  }));
+  return c.json({ success: true as const, data: { focusAreas: data } }, 200);
 });
 
 export { problems };

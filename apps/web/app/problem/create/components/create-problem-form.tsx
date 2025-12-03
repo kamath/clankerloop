@@ -13,9 +13,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { FocusAreaSelector } from "@/components/focus-area-selector";
 import { listModels } from "@/actions/list-models";
 import { createModel } from "@/actions/create-model";
 import { createProblem } from "@/actions/create-problem";
+import { listFocusAreas } from "@/actions/list-focus-areas";
+import type { FocusArea } from "@repo/api-types";
 
 interface CreateProblemFormProps {
   encryptedUserId: string;
@@ -32,6 +35,11 @@ export default function CreateProblemForm({
   const [isLoadingModels, setIsLoadingModels] = useState(true);
   const [autoGenerate, setAutoGenerate] = useState<boolean>(true);
   const [returnDummy, setReturnDummy] = useState<boolean>(false);
+  const [focusAreas, setFocusAreas] = useState<FocusArea[]>([]);
+  const [selectedFocusAreaIds, setSelectedFocusAreaIds] = useState<string[]>(
+    [],
+  );
+  const [isLoadingFocusAreas, setIsLoadingFocusAreas] = useState(true);
 
   useEffect(() => {
     async function loadModels() {
@@ -49,6 +57,20 @@ export default function CreateProblemForm({
       }
     }
     loadModels();
+  }, [encryptedUserId]);
+
+  useEffect(() => {
+    async function loadFocusAreas() {
+      try {
+        const areas = await listFocusAreas(encryptedUserId);
+        setFocusAreas(areas);
+      } catch (error) {
+        console.error("Failed to load focus areas:", error);
+      } finally {
+        setIsLoadingFocusAreas(false);
+      }
+    }
+    loadFocusAreas();
   }, [encryptedUserId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -91,6 +113,8 @@ export default function CreateProblemForm({
         encryptedUserId,
         autoGenerate,
         returnDummy,
+        undefined, // startFrom
+        selectedFocusAreaIds.length > 0 ? selectedFocusAreaIds : undefined,
       );
       router.push(`/problem/${problemId}`);
     } catch (error) {
@@ -143,6 +167,25 @@ export default function CreateProblemForm({
           <p className="text-sm text-muted-foreground">
             If you enter a new model name, it will be created and used for this
             problem.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Focus Areas</Label>
+          {isLoadingFocusAreas ? (
+            <div className="text-sm text-muted-foreground">
+              Loading focus areas...
+            </div>
+          ) : (
+            <FocusAreaSelector
+              focusAreas={focusAreas}
+              selectedIds={selectedFocusAreaIds}
+              onChange={setSelectedFocusAreaIds}
+              disabled={isCreating}
+            />
+          )}
+          <p className="text-sm text-muted-foreground">
+            Select specific focus areas or leave empty for a random topic.
           </p>
         </div>
 

@@ -33,6 +33,8 @@ import {
   FunctionSignatureSchemaGenerateResponseSchema,
   StarterCodeRequestSchema,
   StarterCodeResponseSchema,
+  FocusAreaListSchema,
+  ProblemFocusAreasResponseSchema,
 } from "@repo/api-types";
 import { z } from "@hono/zod-openapi";
 
@@ -752,6 +754,49 @@ export const getProblemModelRoute = createRoute({
         },
       },
       description: "Problem model retrieved",
+    },
+  },
+  security: [{ ApiKeyAuth: [] }],
+});
+
+// ============== Focus Areas Routes ==============
+
+export const listFocusAreasRoute = createRoute({
+  method: "get",
+  path: "/focus-areas",
+  tags: ["Focus Areas"],
+  summary: "List all focus areas",
+  description: "Returns all active focus areas for problem generation",
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: ApiSuccessSchema(FocusAreaListSchema),
+        },
+      },
+      description: "List of focus areas",
+    },
+  },
+  security: [{ ApiKeyAuth: [] }],
+});
+
+export const getProblemFocusAreasRoute = createRoute({
+  method: "get",
+  path: "/{problemId}/focus-areas",
+  tags: ["Problems"],
+  summary: "Get problem focus areas",
+  description: "Returns the focus areas associated with a problem",
+  request: {
+    params: ProblemIdParamSchema,
+  },
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: ApiSuccessSchema(ProblemFocusAreasResponseSchema),
+        },
+      },
+      description: "Focus areas for the problem",
     },
   },
   security: [{ ApiKeyAuth: [] }],
