@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import NewProblemView from "./new-problem-view";
+import { IssueReportDialog } from "./issue-report-dialog";
 import type { FocusArea } from "@repo/api-types";
 
 interface NewProblemPageWrapperProps {
@@ -59,15 +60,7 @@ export default function NewProblemPageWrapper({
                 >
                   (sign out)
                 </button>
-              </form>{" "}
-              <Link
-                href="https://github.com/kamath/clankerrank"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-green-600 hover:underline hover:cursor-pointer"
-              >
-                ⭐⭐⭐⭐ please star this repo on github ⭐⭐⭐⭐
-              </Link>
+              </form>
             </p>
           ) : (
             <Link href="/login">
@@ -76,6 +69,7 @@ export default function NewProblemPageWrapper({
               </p>
             </Link>
           )}
+          <IssueReportDialog />
         </div>
       </div>
       <ResizablePanelGroup

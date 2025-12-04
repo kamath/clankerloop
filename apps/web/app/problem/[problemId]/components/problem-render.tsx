@@ -50,6 +50,7 @@ import {
 import AdminCollapsibles from "./admin-collapsibles";
 import NonAdminProblemView from "./non-admin-problem-view";
 import CustomTestInputs from "./custom-test-inputs";
+import { IssueReportDialog } from "./issue-report-dialog";
 
 export default function ProblemRender({
   problemId,
@@ -152,7 +153,7 @@ export default function ProblemRender({
     problemId,
     userSolution,
     language,
-    user.apiKey,
+    user.apiKey
   );
 
   const {
@@ -303,17 +304,10 @@ export default function ProblemRender({
                 >
                   (sign out)
                 </button>
-              </form>{" "}
-              <Link
-                href="https://github.com/kamath/clankerrank"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-green-600 hover:underline hover:cursor-pointer"
-              >
-                ⭐⭐⭐⭐ please star this repo on github ⭐⭐⭐⭐
-              </Link>
+              </form>
             </div>
           )}
+          <IssueReportDialog />
         </div>
       </div>
       <ResizablePanelGroup
@@ -480,7 +474,7 @@ export default function ProblemRender({
                             } catch (error) {
                               console.error(
                                 "Failed to run user solution:",
-                                error,
+                                error
                               );
                               setShowSubmitDialog(false);
                             }
