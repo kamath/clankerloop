@@ -9,7 +9,7 @@ This guide explains how to configure all environment variables for local develop
 Database configuration for the Drizzle ORM layer.
 
 #### `DATABASE_URL` • Required
-PostgreSQL/Any SQL Connection connection string for your local database.
+PostgreSQL/Any SQL connection string for your local database.
 
 **Setup:**
 1. Start PostgreSQL
