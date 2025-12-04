@@ -32,7 +32,7 @@ export default function NewProblemView({
 
   // Initialize selected focus areas from URL params if present
   const [selectedFocusAreaIds, setSelectedFocusAreaIds] = useState<string[]>(
-    []
+    [],
   );
 
   // Sync selected focus areas with URL params on mount and when searchParams change
@@ -41,7 +41,7 @@ export default function NewProblemView({
     if (focusAreasParam) {
       const ids = focusAreasParam.split(",").filter(Boolean);
       const validIds = ids.filter((id) =>
-        focusAreas.some((area) => area.id === id)
+        focusAreas.some((area) => area.id === id),
       );
       setSelectedFocusAreaIds(validIds);
     } else {
@@ -81,7 +81,7 @@ export default function NewProblemView({
         true, // autoGenerate
         undefined, // returnDummy
         undefined, // startFrom
-        selectedFocusAreaIds.length > 0 ? selectedFocusAreaIds : undefined
+        selectedFocusAreaIds.length > 0 ? selectedFocusAreaIds : undefined,
       );
       router.push(`/problem/${result.problemId}`);
     } catch (error) {
