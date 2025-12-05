@@ -13,8 +13,8 @@ PostgreSQL/Any SQL connection string for your local database.
 
 **Setup:**
 1. Start PostgreSQL
-2. Create database: `psql postgres -c "CREATE DATABASE clankerrank;"`
-3. Set value: `postgresql://localhost:5432/clankerrank`
+2. Create database: `psql postgres -c "CREATE DATABASE clankerloop;"`
+3. Set value: `postgresql://localhost:5432/clankerloop`
 
 ---
 
@@ -30,11 +30,11 @@ API key for accessing AI models through Vercel AI Gateway.
 
 #### `DATABASE_URL` • Required
 PostgreSQL connection string (same as `packages/db/.env`)
-- Value: `postgresql://localhost:5432/clankerrank`
+- Value: `postgresql://localhost:5432/clankerloop`
 
 #### `PROJECT_NAME` • Optional
 Display name for your project
-- Default: `Clankerrank`
+- Default: `Clankerloop`
 
 #### `WORKOS_API_KEY` • Required
 WorkOS AuthKit API key for authentication and user management
@@ -74,11 +74,11 @@ Same as backend - API key for Vercel AI Gateway access
 
 #### `DATABASE_URL` • Required
 PostgreSQL connection string for server-side database access
-- Value: `postgresql://localhost:5432/clankerrank`
+- Value: `postgresql://localhost:5432/clankerloop`
 
 #### `PROJECT_NAME` • Optional
 Display name for your project
-- Default: `Clankerrank`
+- Default: `clankerloop`
 
 #### `NEXT_PUBLIC_BACKEND_URL` • Required (pre-configured)
 URL where the backend API is running
