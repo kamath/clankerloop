@@ -1,3 +1,4 @@
+"use server";
 import { redirect } from "next/navigation";
 import { withAuth } from "@workos-inc/authkit-nextjs";
 import {
