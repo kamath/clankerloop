@@ -4,6 +4,7 @@ import { getLanguageConfig, getRunnerTemplate } from "./runners";
 import type { TestResult, SupportedLanguage, CustomTestResult } from "./types";
 import { runReferenceSolutionOnInput } from "./generate-test-case-outputs";
 import { getPostHogClient } from "@/utils/analytics";
+import { pLimit, getConcurrency } from "./concurrency";
 
 const WORK_DIR = ".";
 
@@ -42,132 +43,141 @@ export async function runUserSolution(
   const config = getLanguageConfig(language);
   const runnerTemplate = getRunnerTemplate(language);
 
-  const results: TestResult[] = [];
-
   const solutionPath = `${WORK_DIR}/solution.${config.extension}`;
   const runnerPath = `${WORK_DIR}/runner.${config.extension}`;
-  const inputPath = `${WORK_DIR}/input.json`;
 
   // Prepare code using language-specific preparation function
   const preparedCode = config.prepareCode(userCode);
 
+  let results: TestResult[] = [];
+
   try {
-    // Upload user solution file
+    // Upload user solution file and runner once
     await sandbox.uploadFile(Buffer.from(preparedCode, "utf-8"), solutionPath);
-    // Upload runner file
     await sandbox.uploadFile(Buffer.from(runnerTemplate, "utf-8"), runnerPath);
-    for (let index = 0; index < testCases.length; index++) {
-      const testCase = testCases[index];
-      if (!testCase) {
-        throw new Error(`Test case at index ${index} is undefined`);
-      }
 
-      try {
-        // Upload input JSON for this test case
-        const inputJson = JSON.stringify(testCase.input);
-        await sandbox.uploadFile(Buffer.from(inputJson, "utf-8"), inputPath);
-        // Execute the runner
-        const command = `${config.runCommand} runner.${config.extension} input.json`;
-        const result = await sandbox.executeCommand(command, WORK_DIR);
-        console.log("result", JSON.stringify(result, null, 2));
+    const limit = pLimit(getConcurrency(env));
+    const settledResults = await Promise.allSettled(
+      testCases.map((testCase, index) =>
+        limit(async (): Promise<TestResult> => {
+          if (!testCase) {
+            throw new Error(`Test case at index ${index} is undefined`);
+          }
 
-        const outputPath = `${WORK_DIR}/output.json`;
+          const inputPath = `${WORK_DIR}/input_${index}.json`;
+          const outputPath = `${WORK_DIR}/output_${index}.json`;
 
-        // If exitCode !== 0, treat as runner execution failure
-        if (result.exitCode !== 0) {
-          results.push({
+          // Upload input JSON for this test case
+          const inputJson = JSON.stringify(testCase.input);
+          await sandbox.uploadFile(Buffer.from(inputJson, "utf-8"), inputPath);
+
+          // Execute the runner with unique input/output paths
+          const command = `${config.runCommand} runner.${config.extension} ${inputPath} ${outputPath}`;
+          const result = await sandbox.executeCommand(command, WORK_DIR);
+          console.log("result", JSON.stringify(result, null, 2));
+
+          // If exitCode !== 0, treat as runner execution failure
+          if (result.exitCode !== 0) {
+            return {
+              testCase,
+              status: "error",
+              actual: null,
+              expected: testCase.expected,
+              error:
+                "Execution failed. Please abide by the given function signature and structure.",
+            };
+          }
+
+          // Try to read output.json
+          let outputData: {
+            success: boolean;
+            result?: unknown;
+            error?: string;
+            trace?: string;
+            stdout?: string;
+          };
+
+          try {
+            const outputContent = await sandbox.readFile(outputPath);
+            outputData = JSON.parse(outputContent);
+          } catch {
+            // If output.json doesn't exist or is malformed, treat as runner execution failure
+            return {
+              testCase,
+              status: "error",
+              actual: null,
+              expected: testCase.expected,
+              error:
+                "Execution failed. Please abide by the given function signature and structure.",
+            };
+          }
+
+          // Handle user code error (success === false)
+          if (outputData.success === false) {
+            const errorMessage = outputData.error || "Unknown error";
+            const trace = outputData.trace || "";
+            const errorWithTrace = trace
+              ? `${errorMessage}\n\n${trace}`
+              : errorMessage;
+            return {
+              testCase,
+              status: "error",
+              actual: null,
+              expected: testCase.expected,
+              error: errorWithTrace,
+              stdout: outputData.stdout,
+            };
+          }
+
+          // Handle success (success === true)
+          if (outputData.success === true) {
+            const actualStr = JSON.stringify(outputData.result);
+            const expectedStr = JSON.stringify(testCase.expected);
+            const status = actualStr === expectedStr ? "pass" : "fail";
+            return {
+              testCase,
+              status,
+              actual: outputData.result,
+              expected: testCase.expected,
+              stdout: outputData.stdout,
+            };
+          }
+
+          console.warn(
+            "Unexpected output format",
+            JSON.stringify(outputData, null, 2),
+          );
+
+          // Unexpected output format
+          return {
             testCase,
             status: "error",
             actual: null,
             expected: testCase.expected,
             error:
               "Execution failed. Please abide by the given function signature and structure.",
-          });
-          continue;
-        }
+          };
+        }),
+      ),
+    );
 
-        // Try to read output.json
-        let outputData: {
-          success: boolean;
-          result?: unknown;
-          error?: string;
-          trace?: string;
-          stdout?: string;
-        };
-
-        try {
-          const outputContent = await sandbox.readFile(outputPath);
-          outputData = JSON.parse(outputContent);
-        } catch {
-          // If output.json doesn't exist or is malformed, treat as runner execution failure
-          results.push({
-            testCase,
-            status: "error",
-            actual: null,
-            expected: testCase.expected,
-            error:
-              "Execution failed. Please abide by the given function signature and structure.",
-          });
-          continue;
-        }
-
-        // Handle user code error (success === false)
-        if (outputData.success === false) {
-          const errorMessage = outputData.error || "Unknown error";
-          const trace = outputData.trace || "";
-          const errorWithTrace = trace
-            ? `${errorMessage}\n\n${trace}`
-            : errorMessage;
-          results.push({
-            testCase,
-            status: "error",
-            actual: null,
-            expected: testCase.expected,
-            error: errorWithTrace,
-            stdout: outputData.stdout,
-          });
-          continue;
-        }
-
-        // Handle success (success === true)
-        if (outputData.success === true) {
-          const actualStr = JSON.stringify(outputData.result);
-          const expectedStr = JSON.stringify(testCase.expected);
-          const status = actualStr === expectedStr ? "pass" : "fail";
-          results.push({
-            testCase,
-            status,
-            actual: outputData.result,
-            expected: testCase.expected,
-            stdout: outputData.stdout,
-          });
-          continue;
-        }
-
-        console.warn(
-          "Unexpected output format",
-          JSON.stringify(outputData, null, 2),
-        );
-
-        // Unexpected output format
-        results.push({
-          testCase,
-          status: "error",
-          actual: null,
-          expected: testCase.expected,
-          error:
-            "Execution failed. Please abide by the given function signature and structure.",
-        });
-      } catch (error) {
-        results.push({
-          testCase,
-          status: "error",
-          actual: null,
-          expected: testCase.expected,
-          error: error instanceof Error ? error.message : String(error),
-        });
+    // Convert settled results to TestResult array
+    results = settledResults.map((settled, index) => {
+      if (settled.status === "fulfilled") {
+        return settled.value;
       }
-    }
+      const testCase = testCases[index]!;
+      return {
+        testCase,
+        status: "error" as const,
+        actual: null,
+        expected: testCase.expected,
+        error:
+          settled.reason instanceof Error
+            ? settled.reason.message
+            : String(settled.reason),
+      };
+    });
   } finally {
     await sandbox.kill();
   }
@@ -252,12 +262,10 @@ export async function runUserSolutionWithCustomInputs(
   const runnerTemplate = getRunnerTemplate(language);
 
   const userSolutionPath = `${WORK_DIR}/user.${config.extension}`;
+  const solutionPath = `${WORK_DIR}/solution.${config.extension}`;
   const runnerPath = `${WORK_DIR}/runner.${config.extension}`;
-  const inputPath = `${WORK_DIR}/input.json`;
-  const outputPath = `${WORK_DIR}/output.json`;
 
   const preparedUserCode = config.prepareCode(userCode);
-  const results: CustomTestResult[] = [];
 
   try {
     // Upload user solution and runner once upfront
@@ -267,124 +275,135 @@ export async function runUserSolutionWithCustomInputs(
       userSolutionPath,
     );
     await sandbox.uploadFile(Buffer.from(runnerTemplate, "utf-8"), runnerPath);
+    // Copy user solution to solution.ext (what runner expects) - do this once
+    await sandbox.executeCommand(
+      `cp ${userSolutionPath} ${solutionPath}`,
+      WORK_DIR,
+    );
 
-    // Process each input: run reference solution, then user solution
-    for (let index = 0; index < customInputs.length; index++) {
-      const input = customInputs[index];
-      if (!input) {
-        throw new Error(`Custom input at index ${index} is undefined`);
+    const limit = pLimit(getConcurrency(env));
+    const settledResults = await Promise.allSettled(
+      customInputs.map((input, index) =>
+        limit(async (): Promise<CustomTestResult> => {
+          if (!input) {
+            throw new Error(`Custom input at index ${index} is undefined`);
+          }
+
+          const inputPath = `${WORK_DIR}/input_${index}.json`;
+          const outputPath = `${WORK_DIR}/output_${index}.json`;
+          const refOutputFile = `ref_output_${index}.json`;
+
+          // Upload input JSON for this test case
+          const inputJson = JSON.stringify(input);
+          await sandbox.uploadFile(Buffer.from(inputJson, "utf-8"), inputPath);
+
+          // Run reference solution to get expected output using the abstracted function
+          const expected = await runReferenceSolutionOnInput(
+            problemId,
+            input,
+            sandbox,
+            db,
+            refOutputFile,
+          );
+
+          // Run user solution
+          const command = `${config.runCommand} runner.${config.extension} ${inputPath} ${outputPath}`;
+          const result = await sandbox.executeCommand(command, WORK_DIR);
+          console.log("result", JSON.stringify(result, null, 2));
+
+          // If exitCode !== 0, treat as runner execution failure
+          if (result.exitCode !== 0) {
+            return {
+              input,
+              expected,
+              actual: null,
+              error:
+                "Execution failed. Please abide by the given function signature and structure.",
+            };
+          }
+
+          // Try to read output.json
+          let outputData: {
+            success: boolean;
+            result?: unknown;
+            error?: string;
+            trace?: string;
+            stdout?: string;
+          };
+
+          try {
+            const outputContent = await sandbox.readFile(outputPath);
+            outputData = JSON.parse(outputContent);
+          } catch {
+            // If output.json doesn't exist or is malformed, treat as runner execution failure
+            return {
+              input,
+              expected,
+              actual: null,
+              error:
+                "Execution failed. Please abide by the given function signature and structure.",
+            };
+          }
+
+          // Handle user code error (success === false)
+          if (outputData.success === false) {
+            const errorMessage = outputData.error || "Unknown error";
+            const trace = outputData.trace || "";
+            const errorWithTrace = trace
+              ? `${errorMessage}\n\n${trace}`
+              : errorMessage;
+            return {
+              input,
+              expected,
+              actual: null,
+              error: errorWithTrace,
+              stdout: outputData.stdout,
+            };
+          }
+
+          // Handle success (success === true)
+          if (outputData.success === true) {
+            return {
+              input,
+              expected,
+              actual: outputData.result,
+              stdout: outputData.stdout,
+            };
+          }
+
+          console.warn(
+            "Unexpected output format",
+            JSON.stringify(outputData, null, 2),
+          );
+
+          // Unexpected output format
+          return {
+            input,
+            expected,
+            actual: null,
+            error:
+              "Execution failed. Please abide by the given function signature and structure.",
+          };
+        }),
+      ),
+    );
+
+    // Convert settled results to CustomTestResult array
+    const results: CustomTestResult[] = settledResults.map((settled, index) => {
+      if (settled.status === "fulfilled") {
+        return settled.value;
       }
-
-      // Upload input JSON once for this test case
-      const inputJson = JSON.stringify(input);
-      await sandbox.uploadFile(Buffer.from(inputJson, "utf-8"), inputPath);
-
-      // Run reference solution to get expected output using the abstracted function
-      const expected = await runReferenceSolutionOnInput(
-        problemId,
+      const input = customInputs[index]!;
+      return {
         input,
-        sandbox,
-        db,
-      );
-
-      // Run user solution
-      try {
-        // Copy user solution to solution.ext (what runner expects)
-        await sandbox.executeCommand(
-          `cp ${userSolutionPath} solution.${config.extension}`,
-          WORK_DIR,
-        );
-
-        const command = `${config.runCommand} runner.${config.extension} input.json`;
-        const result = await sandbox.executeCommand(command, WORK_DIR);
-        console.log("result", JSON.stringify(result, null, 2));
-
-        // If exitCode !== 0, treat as runner execution failure
-        if (result.exitCode !== 0) {
-          results.push({
-            input,
-            expected,
-            actual: null,
-            error:
-              "Execution failed. Please abide by the given function signature and structure.",
-          });
-          continue;
-        }
-
-        // Try to read output.json
-        let outputData: {
-          success: boolean;
-          result?: unknown;
-          error?: string;
-          trace?: string;
-          stdout?: string;
-        };
-
-        try {
-          const outputContent = await sandbox.readFile(outputPath);
-          outputData = JSON.parse(outputContent);
-        } catch {
-          // If output.json doesn't exist or is malformed, treat as runner execution failure
-          results.push({
-            input,
-            expected,
-            actual: null,
-            error:
-              "Execution failed. Please abide by the given function signature and structure.",
-          });
-          continue;
-        }
-
-        // Handle user code error (success === false)
-        if (outputData.success === false) {
-          const errorMessage = outputData.error || "Unknown error";
-          const trace = outputData.trace || "";
-          const errorWithTrace = trace
-            ? `${errorMessage}\n\n${trace}`
-            : errorMessage;
-          results.push({
-            input,
-            expected,
-            actual: null,
-            error: errorWithTrace,
-            stdout: outputData.stdout,
-          });
-          continue;
-        }
-
-        // Handle success (success === true)
-        if (outputData.success === true) {
-          results.push({
-            input,
-            expected,
-            actual: outputData.result,
-            stdout: outputData.stdout,
-          });
-          continue;
-        }
-
-        console.warn(
-          "Unexpected output format",
-          JSON.stringify(outputData, null, 2),
-        );
-
-        // Unexpected output format
-        results.push({
-          input,
-          expected,
-          actual: null,
-          error:
-            "Execution failed. Please abide by the given function signature and structure.",
-        });
-      } catch (error) {
-        results.push({
-          input,
-          expected,
-          actual: null,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-    }
+        expected: null,
+        actual: null,
+        error:
+          settled.reason instanceof Error
+            ? settled.reason.message
+            : String(settled.reason),
+      };
+    });
 
     // Log PostHog event
     const phClient = getPostHogClient(env);

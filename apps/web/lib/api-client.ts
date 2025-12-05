@@ -1,5 +1,5 @@
 /**
- * Type-safe API client for the ClankerRank backend.
+ * Type-safe API client for the ClankerLoop backend.
  * Uses explicit types from @repo/api-types for type safety.
  */
 

@@ -50,6 +50,7 @@ import {
 import AdminCollapsibles from "./admin-collapsibles";
 import NonAdminProblemView from "./non-admin-problem-view";
 import CustomTestInputs from "./custom-test-inputs";
+import { IssueReportDialog } from "./issue-report-dialog";
 
 export default function ProblemRender({
   problemId,
@@ -284,36 +285,27 @@ export default function ProblemRender({
               className="text-xl font-bold hover:cursor-pointer"
               style={{ fontFamily: "var(--font-comic-relief)" }}
             >
-              ClankerRank
+              ClankerLoop
             </h1>
           </Link>
           <p>&middot;</p>
-          {user && (
-            <div className="font-comic-relief">
-              hi {user.firstName.toLowerCase()}{" "}
-              <form
-                action={async () => {
-                  await signOutAction();
-                }}
-                className="inline"
+          <div className="font-comic-relief">
+            hi {user.firstName.toLowerCase()}{" "}
+            <form
+              action={async () => {
+                await signOutAction();
+              }}
+              className="inline"
+            >
+              <button
+                type="submit"
+                className="text-blue-500 hover:underline hover:cursor-pointer"
               >
-                <button
-                  type="submit"
-                  className="text-blue-500 hover:underline hover:cursor-pointer"
-                >
-                  (sign out)
-                </button>
-              </form>{" "}
-              <Link
-                href="https://github.com/kamath/clankerrank"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-green-600 hover:underline hover:cursor-pointer"
-              >
-                ⭐⭐⭐⭐ please star this repo on github ⭐⭐⭐⭐
-              </Link>
-            </div>
-          )}
+                (sign out)
+              </button>
+            </form>
+          </div>
+          <IssueReportDialog />
         </div>
       </div>
       <ResizablePanelGroup

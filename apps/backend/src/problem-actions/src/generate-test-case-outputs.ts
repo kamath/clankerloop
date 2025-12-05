@@ -7,6 +7,7 @@ import {
   type Database,
 } from "@repo/db";
 import { getPostHogClient } from "@/utils/analytics";
+import { pLimit, getConcurrency } from "./concurrency";
 
 /**
  * Runs the reference solution on an arbitrary input and returns the expected output.
@@ -16,6 +17,7 @@ import { getPostHogClient } from "@/utils/analytics";
  * @param input - The input to run the solution on (array of function arguments)
  * @param sandbox - The sandbox instance to execute code in
  * @param db - The database instance
+ * @param outputFileName - The output file name to write results to (for parallel execution)
  * @returns The expected output value, or null if execution failed
  */
 export async function runReferenceSolutionOnInput(
@@ -23,6 +25,7 @@ export async function runReferenceSolutionOnInput(
   input: unknown,
   sandbox: Sandbox,
   db: Database,
+  outputFileName: string = "output.json",
 ): Promise<unknown | null> {
   try {
     const solution = await getSolution(problemId, db);
@@ -35,9 +38,9 @@ export async function runReferenceSolutionOnInput(
         "; const output = runSolution(..." +
         JSON.stringify(input) +
         ");" +
-        "require('fs').writeFileSync('output.json', JSON.stringify(output));",
+        `require('fs').writeFileSync('${outputFileName}', JSON.stringify(output));`,
     );
-    const outputContent = await sandbox.readFile("output.json");
+    const outputContent = await sandbox.readFile(outputFileName);
     return JSON.parse(outputContent);
   } catch {
     // Return null on any error (execution failure, parse failure, etc.)
@@ -58,21 +61,27 @@ export async function generateTestCaseOutputs(
     );
   }
 
-  const results: unknown[] = [];
-  for (const testCase of testCases) {
-    const result = await runReferenceSolutionOnInput(
-      problemId,
-      testCase.input,
-      sandbox,
-      db,
-    );
-    if (result === null) {
-      throw new Error(
-        `Failed to generate result for test case ${testCase.id || "unknown"}`,
-      );
-    }
-    results.push(result);
-  }
+  const limit = pLimit(getConcurrency(env));
+  const results = await Promise.all(
+    testCases.map((testCase, index) =>
+      limit(async () => {
+        const outputFile = `output_${index}.json`;
+        const result = await runReferenceSolutionOnInput(
+          problemId,
+          testCase.input,
+          sandbox,
+          db,
+          outputFile,
+        );
+        if (result === null) {
+          throw new Error(
+            `Failed to generate result for test case ${testCase.id || "unknown"}`,
+          );
+        }
+        return result;
+      }),
+    ),
+  );
 
   await sandbox.kill();
 

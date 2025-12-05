@@ -5,7 +5,7 @@ import * as ai from "ai";
 
 if (process.env.NODE_ENV === "production") {
   initLogger({
-    projectName: "Clankerrank",
+    projectName: "ClankerLoop",
     apiKey: process.env.BRAINTRUST_API_KEY!,
   });
 }

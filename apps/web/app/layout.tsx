@@ -22,9 +22,9 @@ const comicRelief = Comic_Relief({
 });
 
 export const metadata: Metadata = {
-  title: "ClankerRank",
+  title: "ClankerLoop",
   description:
-    "ClankerRank is a platform for creating and solving coding interview problems, powered by AI",
+    "ClankerLoop is a platform for creating and solving coding interview problems, powered by AI",
 };
 
 export default function RootLayout({

@@ -86,7 +86,7 @@ export default function NonAdminProblemView({
   const router = useRouter();
   const [isAdjustingDifficulty, setIsAdjustingDifficulty] = useState(false);
   const [isRegeneratingSimilar, setIsRegeneratingSimilar] = useState(false);
-  const [focusAreasOpen, setFocusAreasOpen] = useState(false);
+  const [focusAreasOpen, setFocusAreasOpen] = useState(true);
 
   // Focus areas state
   const [allFocusAreas, setAllFocusAreas] = useState<FocusArea[]>([]);
@@ -119,6 +119,13 @@ export default function NonAdminProblemView({
     }
     loadFocusAreas();
   }, [problemId, user.apiKey]);
+
+  // Open focus areas when generation fails
+  useEffect(() => {
+    if (isFailed) {
+      setFocusAreasOpen(true);
+    }
+  }, [isFailed]);
 
   // Track if focus areas have changed from initial
   const handleFocusAreaChange = useCallback(
@@ -317,6 +324,7 @@ export default function NonAdminProblemView({
 
       {/* Focus Areas Section */}
       <Collapsible
+        defaultOpen={true}
         open={focusAreasOpen}
         onOpenChange={setFocusAreasOpen}
         className="border border-border rounded-lg p-3 bg-secondary"

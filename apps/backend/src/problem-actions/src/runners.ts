@@ -1,11 +1,13 @@
 import type { SupportedLanguage, LanguageConfig } from "./types";
 
 // TypeScript runner template
+// Args: runner.ts <input_path> <output_path>
 export const TS_RUNNER = `
 import * as fs from 'fs';
 import { runSolution } from './solution';
 
-const outputPath = './output.json';
+const inputPath = process.argv[2];
+const outputPath = process.argv[3] || './output.json';
 let stdout = '';
 
 // Capture stdout
@@ -16,7 +18,7 @@ process.stdout.write = function(chunk: any, ...args: any[]) {
 };
 
 try {
-  const input = JSON.parse(fs.readFileSync(process.argv[process.argv.length - 1], 'utf-8'));
+  const input = JSON.parse(fs.readFileSync(inputPath, 'utf-8'));
   const result = runSolution(...input);
   fs.writeFileSync(outputPath, JSON.stringify({
     success: true,
@@ -37,11 +39,13 @@ try {
 `.trim();
 
 // JavaScript runner template (same as TypeScript for Node.js)
+// Args: runner.js <input_path> <output_path>
 export const JS_RUNNER = `
 const { runSolution } = require('./solution');
 const fs = require('fs');
 
-const outputPath = './output.json';
+const inputPath = process.argv[2];
+const outputPath = process.argv[3] || './output.json';
 let stdout = '';
 
 // Capture stdout
@@ -52,7 +56,7 @@ process.stdout.write = function(chunk, ...args) {
 };
 
 try {
-  const input = JSON.parse(fs.readFileSync(process.argv[2], 'utf-8'));
+  const input = JSON.parse(fs.readFileSync(inputPath, 'utf-8'));
   const result = runSolution(...input);
   fs.writeFileSync(outputPath, JSON.stringify({
     success: true,
@@ -73,6 +77,7 @@ try {
 `.trim();
 
 // Python runner template
+// Args: runner.py <input_path> <output_path>
 export const PY_RUNNER = `
 import sys
 import json
@@ -80,7 +85,8 @@ import io
 import traceback
 from solution import run_solution
 
-output_path = './output.json'
+input_path = sys.argv[1]
+output_path = sys.argv[2] if len(sys.argv) > 2 else './output.json'
 stdout_capture = io.StringIO()
 
 # Capture stdout
@@ -88,11 +94,11 @@ class StdoutCapture:
     def __init__(self):
         self.original_stdout = sys.stdout
         self.captured = ''
-    
+
     def write(self, text):
         self.captured += text
         self.original_stdout.write(text)
-    
+
     def flush(self):
         self.original_stdout.flush()
 
@@ -100,7 +106,7 @@ stdout_capture_obj = StdoutCapture()
 sys.stdout = stdout_capture_obj
 
 try:
-    with open(sys.argv[1]) as f:
+    with open(input_path) as f:
         input_data = json.load(f)
     result = run_solution(*input_data)
     with open(output_path, 'w') as f:

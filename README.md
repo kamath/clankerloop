@@ -1,6 +1,6 @@
-# ClankerRank
+# ClankerLoop
 
-A monorepo containing a Next.js web app and Cloudflare Workers backend. Check it out at [clankerrank.com](https://clankerrank.com).
+A monorepo containing a Next.js web app and Cloudflare Workers backend. Check it out at [ClankerLoop.com](https://ClankerLoop.com).
 
 ![Demo](public/demo.gif)
 

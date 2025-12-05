@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import NewProblemView from "./new-problem-view";
+import { IssueReportDialog } from "./issue-report-dialog";
 import type { FocusArea } from "@repo/api-types";
 
 interface NewProblemPageWrapperProps {
@@ -40,42 +41,37 @@ export default function NewProblemPageWrapper({
               className="text-xl font-bold hover:cursor-pointer"
               style={{ fontFamily: "var(--font-comic-relief)" }}
             >
-              ClankerRank
+              ClankerLoop
             </h1>
           </Link>
           <p>&middot;</p>
-          {user ? (
-            <p className="font-comic-relief">
-              hi {user.firstName.toLowerCase()}{" "}
-              <form
-                action={async () => {
-                  await signOutAction();
-                }}
-                className="inline"
-              >
-                <button
-                  type="submit"
-                  className="text-blue-500 hover:underline hover:cursor-pointer"
+          <div className="font-comic-relief">
+            {user ? (
+              <>
+                hi {user.firstName.toLowerCase()}{" "}
+                <form
+                  action={async () => {
+                    await signOutAction();
+                  }}
+                  className="inline"
                 >
-                  (sign out)
-                </button>
-              </form>{" "}
-              <Link
-                href="https://github.com/kamath/clankerrank"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-green-600 hover:underline hover:cursor-pointer"
-              >
-                ⭐⭐⭐⭐ please star this repo on github ⭐⭐⭐⭐
+                  <button
+                    type="submit"
+                    className="text-blue-500 hover:underline hover:cursor-pointer"
+                  >
+                    (sign out)
+                  </button>
+                </form>
+              </>
+            ) : (
+              <Link href="/login">
+                <span className="text-blue-500 hover:underline hover:cursor-pointer">
+                  sign in
+                </span>
               </Link>
-            </p>
-          ) : (
-            <Link href="/login">
-              <p className="font-comic-relief text-blue-500 hover:underline hover:cursor-pointer">
-                sign in
-              </p>
-            </Link>
-          )}
+            )}
+          </div>
+          <IssueReportDialog />
         </div>
       </div>
       <ResizablePanelGroup

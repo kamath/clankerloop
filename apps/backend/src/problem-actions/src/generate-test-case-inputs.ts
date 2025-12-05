@@ -6,6 +6,7 @@ import {
   type Database,
 } from "@repo/db";
 import { getPostHogClient } from "@/utils/analytics";
+import { pLimit, getConcurrency } from "./concurrency";
 
 export async function generateTestCaseInputs(
   problemId: string,
@@ -22,21 +23,26 @@ export async function generateTestCaseInputs(
     );
   }
 
-  const results: unknown[] = [];
-  for (const testCase of testCases) {
-    const result = await sandbox.run(
-      testCase.inputCode +
-        "; const output = generateTestInput();" +
-        "require('fs').writeFileSync('output.json', JSON.stringify(output));",
-    );
-    if (result.exitCode !== 0) {
-      throw new Error(
-        `Failed to generate test case input for test case ${testCase.id}: exitCode ${result.exitCode}`,
-      );
-    }
-    console.log("Result of running sandbox code:", result);
-    results.push(JSON.parse(await sandbox.readFile("output.json")));
-  }
+  const limit = pLimit(getConcurrency(env));
+  const results = await Promise.all(
+    testCases.map((testCase, index) =>
+      limit(async () => {
+        const outputFile = `output_${index}.json`;
+        const result = await sandbox.run(
+          testCase.inputCode +
+            "; const output = generateTestInput();" +
+            `require('fs').writeFileSync('${outputFile}', JSON.stringify(output));`,
+        );
+        if (result.exitCode !== 0) {
+          throw new Error(
+            `Failed to generate test case input for test case ${testCase.id}: exitCode ${result.exitCode}`,
+          );
+        }
+        console.log("Result of running sandbox code:", result);
+        return JSON.parse(await sandbox.readFile(outputFile));
+      }),
+    ),
+  );
 
   await sandbox.kill();
 

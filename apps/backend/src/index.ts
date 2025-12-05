@@ -56,7 +56,7 @@ app.route("/api/v1", api);
 app.doc("/api/v1/openapi.json", {
   openapi: "3.1.0",
   info: {
-    title: "ClankerRank API",
+    title: "ClankerLoop API",
     version: "1.0.0",
     description:
       "AI-powered competitive programming problem generation and evaluation API",
