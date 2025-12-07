@@ -63,11 +63,12 @@ export async function runUserSolution(
       const combinedPath = `${WORK_DIR}/combined.cpp`;
       await sandbox.uploadFile(Buffer.from(combinedCode, "utf-8"), combinedPath);
 
-      // Compile C++ code
+      // Compile C++ code with 30 second timeout
       const compileCommand = `g++ -std=c++17 -O2 -Wall -Wextra -I/usr/local/include ${combinedPath} -o ${WORK_DIR}/runner`;
       const compileResult = await sandbox.executeCommand(
         compileCommand,
         WORK_DIR,
+        30000, // 30 second timeout for compilation
       );
 
       // Check for compilation errors
@@ -111,13 +112,26 @@ export async function runUserSolution(
 
           // If exitCode !== 0, treat as runner execution failure
           if (result.exitCode !== 0) {
+            // Provide C++-specific error messages for common exit codes
+            let errorMessage =
+              "Execution failed. Please abide by the given function signature and structure.";
+            if (language === "cpp") {
+              if (result.exitCode === 139) {
+                errorMessage = "Segmentation Fault (exit code 139): Your program tried to access invalid memory. Check for null pointer dereferences, array out of bounds, or stack overflow.";
+              } else if (result.exitCode === 134) {
+                errorMessage = "Aborted (exit code 134): Your program was terminated, possibly due to an assertion failure or abort() call.";
+              } else if (result.exitCode === 136) {
+                errorMessage = "Floating Point Exception (exit code 136): Division by zero or invalid arithmetic operation.";
+              } else if (result.stderr) {
+                errorMessage = `Runtime Error:\n${result.stderr}`;
+              }
+            }
             return {
               testCase,
               status: "error",
               actual: null,
               expected: testCase.expected,
-              error:
-                "Execution failed. Please abide by the given function signature and structure.",
+              error: errorMessage,
             };
           }
 
@@ -321,11 +335,12 @@ export async function runUserSolutionWithCustomInputs(
       const combinedPath = `${WORK_DIR}/combined.cpp`;
       await sandbox.uploadFile(Buffer.from(combinedCode, "utf-8"), combinedPath);
 
-      // Compile C++ code
+      // Compile C++ code with 30 second timeout
       const compileCommand = `g++ -std=c++17 -O2 -Wall -Wextra -I/usr/local/include ${combinedPath} -o ${WORK_DIR}/runner`;
       const compileResult = await sandbox.executeCommand(
         compileCommand,
         WORK_DIR,
+        30000, // 30 second timeout for compilation
       );
 
       // Check for compilation errors
@@ -378,12 +393,25 @@ export async function runUserSolutionWithCustomInputs(
 
           // If exitCode !== 0, treat as runner execution failure
           if (result.exitCode !== 0) {
+            // Provide C++-specific error messages for common exit codes
+            let errorMessage =
+              "Execution failed. Please abide by the given function signature and structure.";
+            if (language === "cpp") {
+              if (result.exitCode === 139) {
+                errorMessage = "Segmentation Fault (exit code 139): Your program tried to access invalid memory. Check for null pointer dereferences, array out of bounds, or stack overflow.";
+              } else if (result.exitCode === 134) {
+                errorMessage = "Aborted (exit code 134): Your program was terminated, possibly due to an assertion failure or abort() call.";
+              } else if (result.exitCode === 136) {
+                errorMessage = "Floating Point Exception (exit code 136): Division by zero or invalid arithmetic operation.";
+              } else if (result.stderr) {
+                errorMessage = `Runtime Error:\n${result.stderr}`;
+              }
+            }
             return {
               input,
               expected,
               actual: null,
-              error:
-                "Execution failed. Please abide by the given function signature and structure.",
+              error: errorMessage,
             };
           }
 
