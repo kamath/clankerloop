@@ -416,17 +416,11 @@ export default function ProblemRender({
             <ResizablePanel defaultSize={50} className="min-h-0">
               <CustomTestInputs
                 problemId={problemId}
-                testCases={testCases}
-                testCaseInputs={testCaseInputs}
-                isRunCustomTestsLoading={isRunCustomTestsLoading}
-                customTestsError={customTestsError}
-                customTestResults={customTestResults}
-                callRunCustomTests={callRunCustomTests}
                 onRunTestsRef={runCustomTestsRef}
                 onCanRunTestsChange={setCanRunCustomTests}
-                userSolutionTestResults={userSolutionTestResults}
-                isRunUserSolutionLoading={isRunUserSolutionLoading}
-                userSolutionError={userSolutionError}
+                userSolution={userSolution}
+                language={language}
+                user={user}
               />
             </ResizablePanel>
           </ResizablePanelGroup>

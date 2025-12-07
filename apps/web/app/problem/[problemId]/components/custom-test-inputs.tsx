@@ -8,66 +8,53 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import Loader from "@/components/client/loader";
+import {
+  CodeGenLanguage,
+  useRunUserSolution,
+  useRunUserSolutionWithCustomInputs,
+  useTestCaseInputs,
+  useTestCases,
+} from "@/hooks/use-problem";
+import { ClientFacingUserObject } from "@/lib/auth-types";
 
 interface CustomTestInputsProps {
-  testCases:
-    | Array<{
-        description: string;
-        isSampleCase: boolean;
-        isEdgeCase: boolean;
-      }>
-    | null
-    | undefined;
-  testCaseInputs: unknown[] | null | undefined;
-  isRunCustomTestsLoading: boolean;
-  customTestsError: unknown;
-  customTestResults:
-    | Array<{
-        input?: unknown;
-        expected?: unknown;
-        actual?: unknown;
-        error?: string;
-        stdout?: string;
-      }>
-    | null
-    | undefined;
-  callRunCustomTests: (inputs: unknown[][]) => Promise<unknown>;
   problemId: string;
   onRunTestsRef?: React.MutableRefObject<(() => Promise<void>) | null>;
   onCanRunTestsChange?: (canRun: boolean) => void;
   // Run Solution props
-  userSolutionTestResults:
-    | Array<{
-        testCase: {
-          description: string;
-          isEdgeCase: boolean;
-        };
-        status: string;
-        expected?: unknown;
-        actual?: unknown;
-        error?: string;
-        stdout?: string;
-      }>
-    | null
-    | undefined;
-  isRunUserSolutionLoading: boolean;
-  userSolutionError: unknown;
+  userSolution: string | null;
+  language: CodeGenLanguage;
+  user: ClientFacingUserObject;
 }
 
 export default function CustomTestInputs({
-  testCases,
-  testCaseInputs,
-  isRunCustomTestsLoading,
-  customTestsError,
-  customTestResults,
-  callRunCustomTests,
   problemId,
   onRunTestsRef,
   onCanRunTestsChange,
-  userSolutionTestResults,
-  isRunUserSolutionLoading,
-  userSolutionError,
+  userSolution,
+  language,
+  user,
 }: CustomTestInputsProps) {
+  const {
+    data: customTestResults,
+    runData: callRunCustomTests,
+    isLoading: isRunCustomTestsLoading,
+    error: customTestsError,
+  } = useRunUserSolutionWithCustomInputs(
+    problemId,
+    userSolution,
+    language,
+    user.apiKey
+  );
+
+  const { data: testCases } = useTestCases(problemId, user.apiKey);
+  const { data: testCaseInputs } = useTestCaseInputs(problemId, user.apiKey);
+  const {
+    data: userSolutionTestResults,
+    isLoading: isRunUserSolutionLoading,
+    error: userSolutionError,
+  } = useRunUserSolution(problemId, userSolution, language, user.apiKey);
+
   const [viewMode, setViewMode] = useState<"custom" | "results">("custom");
   const [customTestCases, setCustomTestCases] = useState<
     Array<{ id: string; inputText: string }>
@@ -398,8 +385,8 @@ export default function CustomTestInputs({
                         prev.map((tc) =>
                           tc.id === testCase.id
                             ? { ...tc, inputText: e.target.value }
-                            : tc,
-                        ),
+                            : tc
+                        )
                       );
                     }}
                     className="font-mono text-sm min-h-[80px] w-full"
