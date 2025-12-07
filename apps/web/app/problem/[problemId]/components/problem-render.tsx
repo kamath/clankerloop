@@ -13,13 +13,9 @@ import {
   useTestCases,
   useTestCaseInputCode,
   useTestCaseInputs,
-  useSolution,
-  useGenerateSolutionWithModel,
-  useTestCaseOutputs,
   useRunUserSolution,
   useRunUserSolutionWithCustomInputs,
   useGenerationStatus,
-  useWorkflowStatus,
   useModels,
   useProblemModel,
   useStarterCode,
@@ -65,13 +61,10 @@ export default function ProblemRender({
   const [canRunCustomTests, setCanRunCustomTests] = useState(false);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
 
-  const {
-    isLoading: isProblemTextLoading,
-    error: problemTextError,
-    data: problemText,
-    getData: getProblemText,
-    generateData: callGenerateProblemText,
-  } = useProblemText(problemId, user.apiKey);
+  const { data: problemText, getData: getProblemText } = useProblemText(
+    problemId,
+    user.apiKey
+  );
 
   const {
     isLoading: isStarterCodeLoading,
@@ -91,83 +84,36 @@ export default function ProblemRender({
     }
   }, [starterCode]);
 
-  const {
-    isLoading: isTestCasesLoading,
-    error: testCasesError,
-    data: testCases,
-    getData: getTestCases,
-    generateData: callGenerateTestCases,
-  } = useTestCases(problemId, user.apiKey);
+  const { data: testCases, getData: getTestCases } = useTestCases(
+    problemId,
+    user.apiKey
+  );
 
-  const {
-    isLoading: isTestCaseInputsLoading,
-    error: testCaseInputCodeError,
-    data: testCaseInputCode,
-    getData: getCodeToGenerateTestCaseInputs,
-    generateData: callGenerateTestCaseInputCode,
-  } = useTestCaseInputCode(problemId, user.apiKey);
+  const { data: testCaseInputCode, getData: getCodeToGenerateTestCaseInputs } =
+    useTestCaseInputCode(problemId, user.apiKey);
 
   const { data: testCaseInputs, getData: getTestCaseInputs } =
     useTestCaseInputs(problemId, user.apiKey);
 
-  const {
-    isLoading: isGenerateSolutionLoading,
-    error: solutionError,
-    data: solution,
-    getData: getSolution,
-    generateData: callGenerateSolution,
-  } = useSolution(problemId, user.apiKey);
-
-  const {
-    isLoading: isGenerateSolutionWithModelLoading,
-    generateData: callGenerateSolutionWithModel,
-  } = useGenerateSolutionWithModel(problemId, user.apiKey);
-
-  const {
-    isLoading: isModelsLoading,
-    error: modelsError,
-    models,
-  } = useModels(user.apiKey);
+  const { data: models } = useModels(user.apiKey);
 
   const { model: problemModel } = useProblemModel(problemId, user.apiKey);
 
-  const { data: testCaseOutputs, getData: getTestCaseOutputs } =
-    useTestCaseOutputs(problemId, user.apiKey);
+  const { isLoading: isRunUserSolutionLoading, runData: callRunUserSolution } =
+    useRunUserSolution(problemId, userSolution, language, user.apiKey);
 
-  const {
-    isLoading: isRunUserSolutionLoading,
-    error: userSolutionError,
-    data: userSolutionTestResults,
-    runData: callRunUserSolution,
-  } = useRunUserSolution(problemId, userSolution, language, user.apiKey);
+  const { isLoading: isRunCustomTestsLoading } =
+    useRunUserSolutionWithCustomInputs(
+      problemId,
+      userSolution,
+      language,
+      user.apiKey
+    );
 
-  const {
-    isLoading: isRunCustomTestsLoading,
-    error: customTestsError,
-    data: customTestResults,
-    runData: callRunCustomTests,
-  } = useRunUserSolutionWithCustomInputs(
+  const { completedSteps, isGenerating } = useGenerationStatus(
     problemId,
-    userSolution,
-    language,
     user.apiKey
   );
-
-  const {
-    completedSteps,
-    currentStep,
-    isGenerating,
-    isFailed,
-    error: generationError,
-  } = useGenerationStatus(problemId, user.apiKey);
-
-  const {
-    status: workflowStatus,
-    isLoading: isWorkflowStatusLoading,
-    isActive: isWorkflowActive,
-    isComplete: isWorkflowComplete,
-    isErrored: isWorkflowErrored,
-  } = useWorkflowStatus(problemId, user.apiKey);
 
   // Set default model: use problem model if available, otherwise use first model from list
   useEffect(() => {
