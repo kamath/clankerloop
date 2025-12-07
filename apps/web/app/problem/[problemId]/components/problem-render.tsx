@@ -282,19 +282,9 @@ export default function ProblemRender({
       >
         <ResizablePanel defaultSize={20} className="min-h-0">
           <NonAdminProblemView
-            problemText={problemText}
-            testCases={testCases}
-            testCaseInputs={testCaseInputs}
-            testCaseOutputs={testCaseOutputs}
-            completedSteps={completedSteps}
-            currentStep={currentStep}
-            isGenerating={isGenerating}
-            isFailed={isFailed}
-            generationError={generationError}
             problemId={problemId}
             user={user}
             selectedModel={selectedModel}
-            isWorkflowErrored={isWorkflowErrored}
           />
         </ResizablePanel>
         <ResizableHandle withHandle />

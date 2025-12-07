@@ -11,7 +11,15 @@ import {
   ClockIcon,
   ChevronDownIcon,
 } from "lucide-react";
-import type { GenerationStep } from "@/hooks/use-problem";
+import {
+  useGenerationStatus,
+  useProblemText,
+  useTestCaseInputs,
+  useTestCaseOutputs,
+  useTestCases,
+  useWorkflowStatus,
+  type GenerationStep,
+} from "@/hooks/use-problem";
 import { useRouter } from "next/navigation";
 import { createProblem } from "@/actions/create-problem";
 import { ClientFacingUserObject } from "@/lib/auth-types";
@@ -34,55 +42,15 @@ const STEP_ORDER: GenerationStep[] = [
   "generateSolution",
 ];
 
-interface NonAdminProblemViewProps {
-  // Problem text
-  problemText:
-    | {
-        problemTextReworded?: string;
-      }
-    | null
-    | undefined;
-  // Test cases
-  testCases:
-    | Array<{
-        description: string;
-        isSampleCase: boolean;
-        isEdgeCase: boolean;
-      }>
-    | null
-    | undefined;
-  // Test case inputs (already filtered to sample cases by backend)
-  testCaseInputs: unknown[] | null | undefined;
-  // Test case outputs (need to match with sample cases)
-  testCaseOutputs: unknown[] | null | undefined;
-  // Generation status hooks
-  completedSteps: GenerationStep[];
-  currentStep: GenerationStep | null | undefined;
-  isGenerating: boolean;
-  isFailed: boolean;
-  generationError: unknown;
-  // Additional props for difficulty adjustment
-  problemId: string;
-  user: ClientFacingUserObject;
-  selectedModel: string;
-  isWorkflowErrored: boolean;
-}
-
 export default function NonAdminProblemView({
-  problemText,
-  testCases,
-  testCaseInputs,
-  testCaseOutputs,
-  completedSteps,
-  currentStep,
-  isGenerating,
-  isFailed,
-  generationError,
   problemId,
   user,
   selectedModel,
-  isWorkflowErrored,
-}: NonAdminProblemViewProps) {
+}: {
+  problemId: string;
+  user: ClientFacingUserObject;
+  selectedModel: string;
+}) {
   const router = useRouter();
   const [isAdjustingDifficulty, setIsAdjustingDifficulty] = useState(false);
   const [isRegeneratingSimilar, setIsRegeneratingSimilar] = useState(false);
@@ -97,6 +65,22 @@ export default function NonAdminProblemView({
   const [isLoadingFocusAreas, setIsLoadingFocusAreas] = useState(true);
   const [isRegeneratingWithFocusAreas, setIsRegeneratingWithFocusAreas] =
     useState(false);
+
+  const { data: problemText } = useProblemText(problemId, user.apiKey);
+  const { data: testCases } = useTestCases(problemId, user.apiKey);
+  const { data: testCaseInputs } = useTestCaseInputs(problemId, user.apiKey);
+  const { data: testCaseOutputs } = useTestCaseOutputs(problemId, user.apiKey);
+  const {
+    completedSteps,
+    currentStep,
+    isGenerating,
+    isFailed,
+    error: generationError,
+  } = useGenerationStatus(problemId, user.apiKey);
+  const { isErrored: isWorkflowErrored } = useWorkflowStatus(
+    problemId,
+    user.apiKey
+  );
 
   // Load focus areas
   useEffect(() => {
@@ -296,11 +280,9 @@ export default function NonAdminProblemView({
         )}
         {overallStatus.type === "error" && generationError != null && (
           <div className="text-xs text-destructive">
-            {generationError instanceof Error
-              ? generationError.message
-              : typeof generationError === "string"
-                ? generationError
-                : JSON.stringify(generationError)}
+            {typeof generationError === "string"
+              ? generationError
+              : JSON.stringify(generationError)}
           </div>
         )}
       </div>
