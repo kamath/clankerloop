@@ -26,7 +26,8 @@ A monorepo containing a Next.js web app and Cloudflare Workers backend. Check it
    cp packages/db/.env.example packages/db/.env
    ```
 
-   Fill in the values in each `.env` file.
+   - Fill in the values in each `.env` file.
+   - See [DEV_ENV_SETUP](./docs/DEV_ENV_SETUP.md) for detailed instructions and explanations for each variable.
 
 3. **Set up the database**
 
