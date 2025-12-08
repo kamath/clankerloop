@@ -5,7 +5,7 @@ import type { TestResult, CustomTestResult } from "@repo/api-types";
 export type { TestCase, TestResult, CustomTestResult } from "@repo/api-types";
 
 // Define CodeGenLanguage type (shared with hooks)
-export type CodeGenLanguage = "typescript" | "python";
+export type CodeGenLanguage = "typescript" | "python" | "cpp";
 
 export async function runUserSolution(
   problemId: string,

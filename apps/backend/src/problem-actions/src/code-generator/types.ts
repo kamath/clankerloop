@@ -16,5 +16,5 @@ export interface CodeGenerator {
 }
 
 // Languages supported by the code generator (subset of all supported languages)
-export const CodeGenLanguageSchema = z.enum(["typescript", "python"]);
+export const CodeGenLanguageSchema = z.enum(["typescript", "python", "cpp"]);
 export type CodeGenLanguage = z.infer<typeof CodeGenLanguageSchema>;

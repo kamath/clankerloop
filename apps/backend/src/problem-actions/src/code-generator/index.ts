@@ -1,5 +1,6 @@
 import { TypeScriptGenerator } from "./typescript-generator";
 import { PythonGenerator } from "./python-generator";
+import { CppGenerator } from "./cpp-generator";
 import type { CodeGenerator, CodeGenLanguage } from "./types";
 
 export function createCodeGenerator(language: CodeGenLanguage): CodeGenerator {
@@ -8,6 +9,8 @@ export function createCodeGenerator(language: CodeGenLanguage): CodeGenerator {
       return new TypeScriptGenerator();
     case "python":
       return new PythonGenerator();
+    case "cpp":
+      return new CppGenerator();
     default:
       throw new Error(`Unsupported language: ${language}`);
   }
@@ -18,3 +21,4 @@ export type { CodeGenerator, CodeGenLanguage } from "./types";
 export { CodeGenLanguageSchema } from "./types";
 export { TypeScriptGenerator } from "./typescript-generator";
 export { PythonGenerator } from "./python-generator";
+export { CppGenerator } from "./cpp-generator";

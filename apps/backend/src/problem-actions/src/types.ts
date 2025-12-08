@@ -23,7 +23,7 @@ export interface SandboxConfig {
   apiKey: string;
 }
 
-export type SupportedLanguage = "typescript" | "javascript" | "python";
+export type SupportedLanguage = "typescript" | "javascript" | "python" | "cpp";
 
 export interface LanguageConfig {
   extension: string;

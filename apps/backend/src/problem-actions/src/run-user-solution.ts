@@ -16,7 +16,7 @@ export async function runUserSolution(
   language: SupportedLanguage = "typescript",
   env: Env,
 ): Promise<TestResult[]> {
-  const { testCases, generatedByUserId } = await getProblem(problemId, db);
+  const { testCases, generatedByUserId, functionSignatureSchema } = await getProblem(problemId, db);
   if (!testCases || testCases.length === 0) {
     throw new Error(
       "No test cases found. Please generate test case descriptions and inputs first.",
@@ -41,7 +41,19 @@ export async function runUserSolution(
   }
 
   const config = getLanguageConfig(language);
-  const runnerTemplate = getRunnerTemplate(language);
+
+  // For C++, generate runner dynamically; for others, use static template
+  let runnerTemplate: string;
+  if (language === "cpp") {
+    if (!functionSignatureSchema) {
+      throw new Error("Function signature schema is required for C++ execution");
+    }
+    const { CppGenerator } = await import("./code-generator/cpp-generator");
+    const generator = new CppGenerator();
+    runnerTemplate = generator.generateRunnerCode(functionSignatureSchema);
+  } else {
+    runnerTemplate = getRunnerTemplate(language);
+  }
 
   const solutionPath = `${WORK_DIR}/solution.${config.extension}`;
   const runnerPath = `${WORK_DIR}/runner.${config.extension}`;
@@ -55,6 +67,36 @@ export async function runUserSolution(
     // Upload user solution file and runner once
     await sandbox.uploadFile(Buffer.from(preparedCode, "utf-8"), solutionPath);
     await sandbox.uploadFile(Buffer.from(runnerTemplate, "utf-8"), runnerPath);
+
+    // For C++, compile the code first
+    if (language === "cpp") {
+      // Combine solution and runner into single file for compilation
+      const combinedCode = `${preparedCode}\n\n${runnerTemplate}`;
+      const combinedPath = `${WORK_DIR}/combined.cpp`;
+      await sandbox.uploadFile(Buffer.from(combinedCode, "utf-8"), combinedPath);
+
+      // Compile C++ code with 30 second timeout
+      const compileCommand = `g++ -std=c++17 -O2 -Wall -Wextra -I/usr/local/include ${combinedPath} -o ${WORK_DIR}/runner`;
+      const compileResult = await sandbox.executeCommand(
+        compileCommand,
+        WORK_DIR,
+        30000, // 30 second timeout for compilation
+      );
+
+      // Check for compilation errors
+      if (compileResult.exitCode !== 0) {
+        const compilationError = compileResult.stderr || "Compilation failed";
+        // Return compilation error for all test cases
+        results = testCases.map((testCase) => ({
+          testCase,
+          status: "error" as const,
+          actual: null,
+          expected: testCase.expected,
+          error: `Compilation Error:\n${compilationError}`,
+        }));
+        return results;
+      }
+    }
 
     const limit = pLimit(getConcurrency(env));
     const settledResults = await Promise.allSettled(
@@ -72,19 +114,40 @@ export async function runUserSolution(
           await sandbox.uploadFile(Buffer.from(inputJson, "utf-8"), inputPath);
 
           // Execute the runner with unique input/output paths
-          const command = `${config.runCommand} runner.${config.extension} ${inputPath} ${outputPath}`;
-          const result = await sandbox.executeCommand(command, WORK_DIR);
+          // For C++, run the compiled binary; for others, use the interpreter/runtime
+          const command =
+            language === "cpp"
+              ? `${WORK_DIR}/runner ${inputPath} ${outputPath}`
+              : `${config.runCommand} runner.${config.extension} ${inputPath} ${outputPath}`;
+          const result = await sandbox.executeCommand(
+            command,
+            WORK_DIR,
+            10000, // 10 second timeout per test case
+          );
           console.log("result", JSON.stringify(result, null, 2));
 
           // If exitCode !== 0, treat as runner execution failure
           if (result.exitCode !== 0) {
+            // Provide C++-specific error messages for common exit codes
+            let errorMessage =
+              "Execution failed. Please abide by the given function signature and structure.";
+            if (language === "cpp") {
+              if (result.exitCode === 139) {
+                errorMessage = "Segmentation Fault (exit code 139): Your program tried to access invalid memory. Check for null pointer dereferences, array out of bounds, or stack overflow.";
+              } else if (result.exitCode === 134) {
+                errorMessage = "Aborted (exit code 134): Your program was terminated, possibly due to an assertion failure or abort() call.";
+              } else if (result.exitCode === 136) {
+                errorMessage = "Floating Point Exception (exit code 136): Division by zero or invalid arithmetic operation.";
+              } else if (result.stderr) {
+                errorMessage = `Runtime Error:\n${result.stderr}`;
+              }
+            }
             return {
               testCase,
               status: "error",
               actual: null,
               expected: testCase.expected,
-              error:
-                "Execution failed. Please abide by the given function signature and structure.",
+              error: errorMessage,
             };
           }
 
@@ -259,7 +322,16 @@ export async function runUserSolutionWithCustomInputs(
   }
 
   const config = getLanguageConfig(language);
-  const runnerTemplate = getRunnerTemplate(language);
+
+  // For C++, generate runner dynamically; for others, use static template
+  let runnerTemplate: string;
+  if (language === "cpp") {
+    const { CppGenerator } = await import("./code-generator/cpp-generator");
+    const generator = new CppGenerator();
+    runnerTemplate = generator.generateRunnerCode(schema);
+  } else {
+    runnerTemplate = getRunnerTemplate(language);
+  }
 
   const userSolutionPath = `${WORK_DIR}/user.${config.extension}`;
   const solutionPath = `${WORK_DIR}/solution.${config.extension}`;
@@ -280,6 +352,35 @@ export async function runUserSolutionWithCustomInputs(
       `cp ${userSolutionPath} ${solutionPath}`,
       WORK_DIR,
     );
+
+    // For C++, compile the code first
+    if (language === "cpp") {
+      // Combine solution and runner into single file for compilation
+      const combinedCode = `${preparedUserCode}\n\n${runnerTemplate}`;
+      const combinedPath = `${WORK_DIR}/combined.cpp`;
+      await sandbox.uploadFile(Buffer.from(combinedCode, "utf-8"), combinedPath);
+
+      // Compile C++ code with 30 second timeout
+      const compileCommand = `g++ -std=c++17 -O2 -Wall -Wextra -I/usr/local/include ${combinedPath} -o ${WORK_DIR}/runner`;
+      const compileResult = await sandbox.executeCommand(
+        compileCommand,
+        WORK_DIR,
+        30000, // 30 second timeout for compilation
+      );
+
+      // Check for compilation errors
+      if (compileResult.exitCode !== 0) {
+        const compilationError = compileResult.stderr || "Compilation failed";
+        // Return compilation error for all custom inputs
+        const results: CustomTestResult[] = customInputs.map((input) => ({
+          input,
+          expected: null,
+          actual: null,
+          error: `Compilation Error:\n${compilationError}`,
+        }));
+        return results;
+      }
+    }
 
     const limit = pLimit(getConcurrency(env));
     const settledResults = await Promise.allSettled(
@@ -307,18 +408,39 @@ export async function runUserSolutionWithCustomInputs(
           );
 
           // Run user solution
-          const command = `${config.runCommand} runner.${config.extension} ${inputPath} ${outputPath}`;
-          const result = await sandbox.executeCommand(command, WORK_DIR);
+          // For C++, run the compiled binary; for others, use the interpreter/runtime
+          const command =
+            language === "cpp"
+              ? `${WORK_DIR}/runner ${inputPath} ${outputPath}`
+              : `${config.runCommand} runner.${config.extension} ${inputPath} ${outputPath}`;
+          const result = await sandbox.executeCommand(
+            command,
+            WORK_DIR,
+            10000, // 10 second timeout per test case
+          );
           console.log("result", JSON.stringify(result, null, 2));
 
           // If exitCode !== 0, treat as runner execution failure
           if (result.exitCode !== 0) {
+            // Provide C++-specific error messages for common exit codes
+            let errorMessage =
+              "Execution failed. Please abide by the given function signature and structure.";
+            if (language === "cpp") {
+              if (result.exitCode === 139) {
+                errorMessage = "Segmentation Fault (exit code 139): Your program tried to access invalid memory. Check for null pointer dereferences, array out of bounds, or stack overflow.";
+              } else if (result.exitCode === 134) {
+                errorMessage = "Aborted (exit code 134): Your program was terminated, possibly due to an assertion failure or abort() call.";
+              } else if (result.exitCode === 136) {
+                errorMessage = "Floating Point Exception (exit code 136): Division by zero or invalid arithmetic operation.";
+              } else if (result.stderr) {
+                errorMessage = `Runtime Error:\n${result.stderr}`;
+              }
+            }
             return {
               input,
               expected,
               actual: null,
-              error:
-                "Execution failed. Please abide by the given function signature and structure.",
+              error: errorMessage,
             };
           }
 

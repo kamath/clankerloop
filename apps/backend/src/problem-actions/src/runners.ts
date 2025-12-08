@@ -128,6 +128,73 @@ except Exception as e:
     # Exit with code 0 so main code can read output.json and handle the error
 `.trim();
 
+// C++ runner template
+// This template will be combined with user solution and compiled
+// Args: ./runner <input_path> <output_path>
+export const CPP_RUNNER = `
+#include <fstream>
+#include <sstream>
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
+
+int main(int argc, char* argv[]) {
+    if (argc < 3) {
+        std::cerr << "Usage: " << argv[0] << " <input.json> <output.json>" << std::endl;
+        return 1;
+    }
+
+    std::string inputPath = argv[1];
+    std::string outputPath = argv[2];
+
+    try {
+        // Read input JSON
+        std::ifstream inputFile(inputPath);
+        if (!inputFile.is_open()) {
+            throw std::runtime_error("Failed to open input file");
+        }
+        json input = json::parse(inputFile);
+        inputFile.close();
+
+        // Capture stdout
+        std::stringstream stdoutCapture;
+        std::streambuf* oldCout = std::cout.rdbuf(stdoutCapture.rdbuf());
+
+        // Call user's solution - this will be customized per function signature
+        auto result = runSolution(input);
+
+        // Restore stdout
+        std::cout.rdbuf(oldCout);
+
+        // Write output JSON
+        json output;
+        output["success"] = true;
+        output["result"] = result;
+        output["stdout"] = stdoutCapture.str();
+
+        std::ofstream outputFile(outputPath);
+        outputFile << output.dump();
+        outputFile.close();
+
+    } catch (const std::exception& e) {
+        json output;
+        output["success"] = false;
+        output["error"] = e.what();
+        output["trace"] = "";
+        output["stdout"] = "";
+
+        std::ofstream outputFile(outputPath);
+        outputFile << output.dump();
+        outputFile.close();
+
+        // Exit with code 0 so main code can read output.json and handle the error
+        return 0;
+    }
+
+    return 0;
+}
+`.trim();
+
 /**
  * Prepares TypeScript/JavaScript code by ensuring it exports runSolution
  */
@@ -144,6 +211,13 @@ function prepareJSCode(userCode: string): string {
  * Prepares Python code (no changes needed - Python doesn't use exports)
  */
 function preparePythonCode(userCode: string): string {
+  return userCode.trim();
+}
+
+/**
+ * Prepares C++ code (no changes needed - C++ doesn't use exports)
+ */
+function prepareCppCode(userCode: string): string {
   return userCode.trim();
 }
 
@@ -166,12 +240,19 @@ export const LANGUAGE_CONFIGS: Record<SupportedLanguage, LanguageConfig> = {
     sandboxLanguage: "python",
     prepareCode: preparePythonCode,
   },
+  cpp: {
+    extension: "cpp",
+    runCommand: "g++",
+    sandboxLanguage: "cpp",
+    prepareCode: prepareCppCode,
+  },
 };
 
 export const RUNNER_TEMPLATES: Record<SupportedLanguage, string> = {
   typescript: TS_RUNNER,
   javascript: JS_RUNNER,
   python: PY_RUNNER,
+  cpp: CPP_RUNNER,
 };
 
 export function getRunnerTemplate(language: SupportedLanguage): string {

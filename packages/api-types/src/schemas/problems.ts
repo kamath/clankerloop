@@ -87,7 +87,7 @@ export const RunSolutionRequestSchema = z
       example: "def solution(n: int) -> int:\n    return n * 2",
     }),
     language: z
-      .enum(["typescript", "python"])
+      .enum(["typescript", "python", "cpp"])
       .optional()
       .default("typescript")
       .openapi({
@@ -112,7 +112,7 @@ export const RunCustomTestsRequestSchema = z
           "Array of test inputs. Each input is an array of function arguments.",
       }),
     language: z
-      .enum(["typescript", "python"])
+      .enum(["typescript", "python", "cpp"])
       .optional()
       .default("typescript")
       .openapi({
@@ -181,7 +181,7 @@ export const ProblemFocusAreasResponseSchema = z
 // Starter code request/response
 export const StarterCodeRequestSchema = z
   .object({
-    language: z.enum(["typescript", "python"]).openapi({
+    language: z.enum(["typescript", "python", "cpp"]).openapi({
       example: "typescript",
       description: "The programming language for the starter code",
     }),
@@ -191,7 +191,7 @@ export const StarterCodeRequestSchema = z
 export const StarterCodeResponseSchema = z
   .object({
     starterCode: z.string(),
-    language: z.enum(["typescript", "python"]),
+    language: z.enum(["typescript", "python", "cpp"]),
   })
   .openapi("StarterCodeResponse");
 
