@@ -9,17 +9,20 @@ import { MessageResponse } from "@/components/ai-elements/message";
 // import { generateShapes } from "@/lib/ai";
 
 import "@excalidraw/excalidraw/index.css";
-import { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import { DefaultChatTransport, UIMessage } from "ai";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ClientFacingUserObject } from "@/lib/auth-types";
+import { AppHeader } from "@/components/app-header";
 
 interface ExcalidrawWrapperProps {
   encryptedUserId: string;
+  user: ClientFacingUserObject;
 }
 
 export default function ExcalidrawWrapper({
   encryptedUserId,
+  user,
 }: ExcalidrawWrapperProps) {
   const [excalidrawAPI, setExcalidrawAPI] = useState<
     | Parameters<
@@ -122,105 +125,113 @@ export default function ExcalidrawWrapper({
     });
   };
   return (
-    <div className="w-screen h-screen flex">
-      {/* Chat panel - left side */}
-      <div className="w-96 h-full flex flex-col border-r border-gray-200 bg-white">
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold">Design Assistant</h2>
-        </div>
-
-        {/* Messages area */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.map((message: UIMessage) => (
-            <div
-              key={message.id}
-              className={message.role === "user" ? "text-right" : "text-left"}
-            >
-              <div
-                className={`inline-block max-w-[80%] rounded-lg p-3 ${
-                  message.role === "user"
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-100 text-gray-900"
-                }`}
-              >
-                {message.role === "assistant" ? (
-                  <MessageResponse>{JSON.stringify(message)}</MessageResponse>
-                ) : (
-                  <p>{JSON.stringify(message)}</p>
-                )}
-              </div>
-            </div>
-          ))}
-          {(status === "streaming" || status === "submitted") && (
-            <div className="text-left">
-              <div className="inline-block bg-gray-100 rounded-lg p-3">
-                <p className="text-gray-500">Thinking...</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Input area */}
-        <form onSubmit={handleSubmit} className="p-4 border-t border-gray-200">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Ask about design..."
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={status === "streaming" || status === "submitted"}
-            />
-            <button
-              type="submit"
-              disabled={
-                status === "streaming" ||
-                status === "submitted" ||
-                !prompt.trim()
-              }
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
-            >
-              Send
-            </button>
+    <div className="w-screen h-screen flex flex-col">
+      <AppHeader user={user} />
+      <div className="flex flex-1 min-h-0">
+        {/* Chat panel - left side */}
+        <div className="w-96 h-full flex flex-col border-r border-gray-200 bg-white">
+          <div className="p-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold">Design Assistant</h2>
           </div>
-        </form>
-      </div>
 
-      {/* Excalidraw canvas - right side */}
-      <div className="flex-1 flex flex-col">
-        <div className="bg-black flex gap-2 p-4">
-          {excalidrawAPI && (
-            <>
-              <Button onClick={addRandomElement}>Add Random Element</Button>
-              <Button onClick={logElementsAsJSON}>Log Elements as JSON</Button>
-              <div className="flex gap-2">
-                <Input
-                  type="text"
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
-                  placeholder="Describe a diagram..."
-                  disabled={isGenerating}
-                />
-                <Button
-                  onClick={handleGenerate}
-                  disabled={isGenerating || !prompt.trim()}
+          {/* Messages area */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {messages.map((message: UIMessage) => (
+              <div
+                key={message.id}
+                className={message.role === "user" ? "text-right" : "text-left"}
+              >
+                <div
+                  className={`inline-block max-w-[80%] rounded-lg p-3 ${
+                    message.role === "user"
+                      ? "bg-blue-500 text-white"
+                      : "bg-gray-100 text-gray-900"
+                  }`}
                 >
-                  {isGenerating ? "Generating..." : "Generate with AI"}
-                </Button>
+                  {message.role === "assistant" ? (
+                    <MessageResponse>{JSON.stringify(message)}</MessageResponse>
+                  ) : (
+                    <p>{JSON.stringify(message)}</p>
+                  )}
+                </div>
               </div>
-            </>
-          )}
+            ))}
+            {(status === "streaming" || status === "submitted") && (
+              <div className="text-left">
+                <div className="inline-block bg-gray-100 rounded-lg p-3">
+                  <p className="text-gray-500">Thinking...</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Input area */}
+          <form
+            onSubmit={handleSubmit}
+            className="p-4 border-t border-gray-200"
+          >
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="Ask about design..."
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={status === "streaming" || status === "submitted"}
+              />
+              <button
+                type="submit"
+                disabled={
+                  status === "streaming" ||
+                  status === "submitted" ||
+                  !prompt.trim()
+                }
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                Send
+              </button>
+            </div>
+          </form>
         </div>
-        <div className="w-full flex-1">
-          <Excalidraw
-            excalidrawAPI={(api) => setExcalidrawAPI(api)}
-            initialData={{
-              elements: initialElements,
-              scrollToContent: true,
-            }}
-            //   viewModeEnabled={true}
-          />
+
+        {/* Excalidraw canvas - right side */}
+        <div className="flex-1 flex flex-col">
+          <div className="bg-black flex gap-2 p-4">
+            {excalidrawAPI && (
+              <>
+                <Button onClick={addRandomElement}>Add Random Element</Button>
+                <Button onClick={logElementsAsJSON}>
+                  Log Elements as JSON
+                </Button>
+                <div className="flex gap-2">
+                  <Input
+                    type="text"
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
+                    placeholder="Describe a diagram..."
+                    disabled={isGenerating}
+                  />
+                  <Button
+                    onClick={handleGenerate}
+                    disabled={isGenerating || !prompt.trim()}
+                  >
+                    {isGenerating ? "Generating..." : "Generate with AI"}
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+          <div className="w-full flex-1">
+            <Excalidraw
+              excalidrawAPI={(api) => setExcalidrawAPI(api)}
+              initialData={{
+                elements: initialElements,
+                scrollToContent: true,
+              }}
+              //   viewModeEnabled={true}
+            />
+          </div>
         </div>
       </div>
     </div>
