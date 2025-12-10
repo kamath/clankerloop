@@ -61,7 +61,7 @@ design.openapi(chatRoute, async (c) => {
       body.messages as unknown as UIMessage[],
       modelName,
       userId,
-      c.env
+      c.env,
     );
 
     return result.toUIMessageStreamResponse() as any;
