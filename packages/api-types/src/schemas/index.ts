@@ -6,3 +6,4 @@ export * from "./test-cases";
 export * from "./generation";
 export * from "./function-signature";
 export * from "./focus-areas";
+export * from "./design";

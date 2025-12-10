@@ -6,6 +6,7 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { apiKeyAuth } from "./middleware/auth";
 import { databaseMiddleware } from "./middleware/database";
 import { problems } from "./routes/problems";
+import { design } from "./routes/design";
 import { ProblemGenerationWorkflow } from "./workflows/problem-generation";
 import type { Database } from "@repo/db";
 
@@ -49,6 +50,7 @@ const api = new OpenAPIHono<{
 api.use("*", databaseMiddleware);
 api.use("*", apiKeyAuth);
 api.route("/problems", problems);
+api.route("/design", design);
 
 app.route("/api/v1", api);
 
@@ -67,6 +69,7 @@ app.doc("/api/v1/openapi.json", {
     { name: "Problems", description: "Problem generation and retrieval" },
     { name: "Test Cases", description: "Test case generation and management" },
     { name: "Solutions", description: "Solution generation and execution" },
+    { name: "Design", description: "Design text streaming" },
   ],
 });
 
