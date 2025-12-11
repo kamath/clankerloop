@@ -618,6 +618,14 @@ export async function saveDesignMessages(
 
       try {
         await uploadBase64Image(r2Key, filePart);
+        // Add attachment record to database
+        await database
+          .insert(attachments)
+          .values({
+            id: r2Key,
+            messageId: msg.id,
+          })
+          .onConflictDoNothing();
       } catch (error) {
         // Log error but don't fail the entire save operation
         console.error(`Failed to upload file ${r2Key}:`, error);
