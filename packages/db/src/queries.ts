@@ -596,6 +596,6 @@ export async function loadDesignMessages(
   const database = getDb(db);
   return database.query.designMessages.findMany({
     where: eq(designMessages.designSessionId, sessionId),
-    orderBy: designMessages.sequence,
+    orderBy: designMessages.createdAt,
   });
 }

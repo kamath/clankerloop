@@ -15,7 +15,7 @@ const getBackendApiKey = () => {
   const apiKey = process.env.NEXT_PUBLIC_BACKEND_API_KEY;
   if (!apiKey) {
     throw new Error(
-      "NEXT_PUBLIC_BACKEND_API_KEY environment variable is not set",
+      "NEXT_PUBLIC_BACKEND_API_KEY environment variable is not set"
     );
   }
   return apiKey;
@@ -33,9 +33,10 @@ interface ApiResponse<T> {
 export async function apiGet<T>(
   path: string,
   encryptedUserId?: string,
+  basePath: string = "/api/v1/problems"
 ): Promise<T> {
   const apiKey = encryptedUserId || getBackendApiKey();
-  const res = await fetch(`${getBackendUrl()}/api/v1/problems${path}`, {
+  const res = await fetch(`${getBackendUrl()}${basePath}${path}`, {
     headers: { "X-API-Key": apiKey },
   });
   const json: ApiResponse<T> = await res.json();
@@ -52,9 +53,10 @@ export async function apiPost<T>(
   path: string,
   body?: object,
   encryptedUserId?: string,
+  basePath: string = "/api/v1/problems"
 ): Promise<T> {
   const apiKey = encryptedUserId || getBackendApiKey();
-  const res = await fetch(`${getBackendUrl()}/api/v1/problems${path}`, {
+  const res = await fetch(`${getBackendUrl()}${basePath}${path}`, {
     method: "POST",
     headers: {
       "X-API-Key": apiKey,

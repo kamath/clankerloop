@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useChat } from "@ai-sdk/react";
 import {
   Excalidraw,
@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ClientFacingUserObject } from "@/lib/auth-types";
 import { AppHeader } from "@/components/app-header";
+import { useDesignSessionMessages } from "@/hooks/use-design";
+import type { DesignMessage } from "@repo/api-types";
 
 interface ExcalidrawWrapperProps {
   designSessionId: string;
@@ -34,43 +36,40 @@ export default function ExcalidrawWrapper({
   >(null);
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
-  const [isLoadingMessages, setIsLoadingMessages] = useState(true);
 
-  // Load initial messages on mount
-  useEffect(() => {
-    async function loadMessages() {
-      try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/design/sessions/${designSessionId}/messages`,
+  // Load initial messages using React Query hook
+  const {
+    isLoading: isLoadingMessages,
+    data: designMessages,
+    error: messagesError,
+  } = useDesignSessionMessages(designSessionId, encryptedUserId);
+
+  // Transform DB messages to UIMessage format
+  // Filter out tool messages as UIMessage doesn't support 'tool' role
+  const initialMessages = useMemo<UIMessage[]>(() => {
+    if (!designMessages) return [];
+    return designMessages
+      .filter(
+        (
+          msg
+        ): msg is DesignMessage & {
+          role: "user" | "assistant" | "system";
+        } => msg.role !== "tool"
+      )
+      .map((msg) => ({
+        id: msg.id,
+        role: msg.role,
+        parts: [
           {
-            headers: {
-              "X-API-Key": encryptedUserId,
-            },
-          }
-        );
-        const json = await res.json();
-        if (json.success) {
-          // Transform DB messages to UIMessage format
-          const uiMessages: UIMessage[] = json.data.map((msg: any) => ({
-            id: msg.id,
-            role: msg.role,
-            content: msg.content,
-            createdAt: new Date(msg.createdAt),
-          }));
-          setInitialMessages(uiMessages);
-        }
-      } catch (error) {
-        console.error("Failed to load messages:", error);
-      } finally {
-        setIsLoadingMessages(false);
-      }
-    }
-    loadMessages();
-  }, [designSessionId, encryptedUserId]);
+            type: "text" as const,
+            text: msg.content,
+          },
+        ],
+      }));
+  }, [designMessages]);
 
   // AI SDK UI's useChat hook with session-specific endpoint
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, status, setMessages } = useChat({
     id: designSessionId,
     messages: isLoadingMessages ? undefined : initialMessages,
     transport: new DefaultChatTransport({
@@ -80,6 +79,27 @@ export default function ExcalidrawWrapper({
       },
     }),
   });
+
+  useEffect(() => {
+    if (designMessages && designMessages.length > 0 && messages.length === 0) {
+      setMessages(
+        designMessages
+          .filter(
+            (
+              msg
+            ): msg is DesignMessage & {
+              role: "user" | "assistant" | "system";
+            } => msg.role !== "tool"
+          )
+          .map((msg) => ({
+            id: msg.id,
+            role: msg.role,
+            parts: [{ type: "text", text: msg.content }],
+          }))
+      );
+    }
+  });
+
   const initialElements = convertToExcalidrawElements([
     {
       type: "rectangle",
@@ -177,6 +197,13 @@ export default function ExcalidrawWrapper({
             {isLoadingMessages ? (
               <div className="text-center text-gray-500">
                 Loading messages...
+              </div>
+            ) : messagesError ? (
+              <div className="text-center text-red-500">
+                Failed to load messages:{" "}
+                {messagesError instanceof Error
+                  ? messagesError.message
+                  : "Unknown error"}
               </div>
             ) : (
               <>

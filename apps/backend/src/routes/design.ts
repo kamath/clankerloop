@@ -132,6 +132,7 @@ design.openapi(getSessionMessagesRoute, async (c) => {
   }
 
   const messages = await loadDesignMessages(sessionId, db);
+  console.log("Loaded messages:", JSON.stringify(messages, null, 2));
 
   return c.json({ success: true as const, data: messages }, 200);
 });
