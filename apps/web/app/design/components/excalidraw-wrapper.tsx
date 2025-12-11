@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useChat } from "@ai-sdk/react";
 import {
   Excalidraw,
@@ -16,11 +16,13 @@ import { ClientFacingUserObject } from "@/lib/auth-types";
 import { AppHeader } from "@/components/app-header";
 
 interface ExcalidrawWrapperProps {
+  designSessionId: string;
   encryptedUserId: string;
   user: ClientFacingUserObject;
 }
 
 export default function ExcalidrawWrapper({
+  designSessionId,
   encryptedUserId,
   user,
 }: ExcalidrawWrapperProps) {
@@ -32,11 +34,47 @@ export default function ExcalidrawWrapper({
   >(null);
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(true);
 
-  // AI SDK UI's useChat hook
+  // Load initial messages on mount
+  useEffect(() => {
+    async function loadMessages() {
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/design/sessions/${designSessionId}/messages`,
+          {
+            headers: {
+              "X-API-Key": encryptedUserId,
+            },
+          }
+        );
+        const json = await res.json();
+        if (json.success) {
+          // Transform DB messages to UIMessage format
+          const uiMessages: UIMessage[] = json.data.map((msg: any) => ({
+            id: msg.id,
+            role: msg.role,
+            content: msg.content,
+            createdAt: new Date(msg.createdAt),
+          }));
+          setInitialMessages(uiMessages);
+        }
+      } catch (error) {
+        console.error("Failed to load messages:", error);
+      } finally {
+        setIsLoadingMessages(false);
+      }
+    }
+    loadMessages();
+  }, [designSessionId, encryptedUserId]);
+
+  // AI SDK UI's useChat hook with session-specific endpoint
   const { messages, sendMessage, status } = useChat({
+    id: designSessionId,
+    messages: isLoadingMessages ? undefined : initialMessages,
     transport: new DefaultChatTransport({
-      api: `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/design/chat`,
+      api: `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/design/sessions/${designSessionId}/chat`,
       headers: {
         "X-API-Key": encryptedUserId,
       },
@@ -136,26 +174,38 @@ export default function ExcalidrawWrapper({
 
           {/* Messages area */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.map((message: UIMessage) => (
-              <div
-                key={message.id}
-                className={message.role === "user" ? "text-right" : "text-left"}
-              >
-                <div
-                  className={`inline-block max-w-[80%] rounded-lg p-3 ${
-                    message.role === "user"
-                      ? "bg-blue-500 text-white"
-                      : "bg-gray-100 text-gray-900"
-                  }`}
-                >
-                  {message.role === "assistant" ? (
-                    <MessageResponse>{JSON.stringify(message)}</MessageResponse>
-                  ) : (
-                    <p>{JSON.stringify(message)}</p>
-                  )}
-                </div>
+            {isLoadingMessages ? (
+              <div className="text-center text-gray-500">
+                Loading messages...
               </div>
-            ))}
+            ) : (
+              <>
+                {messages.map((message: UIMessage) => (
+                  <div
+                    key={message.id}
+                    className={
+                      message.role === "user" ? "text-right" : "text-left"
+                    }
+                  >
+                    <div
+                      className={`inline-block max-w-[80%] rounded-lg p-3 ${
+                        message.role === "user"
+                          ? "bg-blue-500 text-white"
+                          : "bg-gray-100 text-gray-900"
+                      }`}
+                    >
+                      {message.role === "assistant" ? (
+                        <MessageResponse>
+                          {JSON.stringify(message)}
+                        </MessageResponse>
+                      ) : (
+                        <p>{JSON.stringify(message)}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
             {(status === "streaming" || status === "submitted") && (
               <div className="text-left">
                 <div className="inline-block bg-gray-100 rounded-lg p-3">

@@ -142,6 +142,33 @@ export const userProblemAttemptStatus = pgEnum("user_problem_attempt_status", [
   "pass",
 ]);
 
+// Design Sessions
+export const messageRole = pgEnum("message_role", [
+  "user",
+  "assistant",
+  "system",
+  "tool",
+]);
+
+export const designSessions = pgTable("design_sessions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull(),
+  title: text("title"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const designMessages = pgTable("design_messages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  designSessionId: uuid("design_session_id")
+    .notNull()
+    .references(() => designSessions.id, { onDelete: "cascade" }),
+  role: messageRole("role").notNull(),
+  content: text("content").notNull(),
+  contentParts: jsonb("content_parts"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const userProblemAttempts = pgTable("user_problem_attempts", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: text("user_id").notNull(),
@@ -190,6 +217,17 @@ export const userProblemAttemptsRelations = relations(
   }),
 );
 
+export const designSessionsRelations = relations(designSessions, ({ many }) => ({
+  messages: many(designMessages),
+}));
+
+export const designMessagesRelations = relations(designMessages, ({ one }) => ({
+  session: one(designSessions, {
+    fields: [designMessages.designSessionId],
+    references: [designSessions.id],
+  }),
+}));
+
 // Type exports
 export type Model = typeof models.$inferSelect;
 export type NewModel = typeof models.$inferInsert;
@@ -205,3 +243,7 @@ export type ProblemFocusArea = typeof problemFocusAreas.$inferSelect;
 export type NewProblemFocusArea = typeof problemFocusAreas.$inferInsert;
 export type UserProblemAttempt = typeof userProblemAttempts.$inferSelect;
 export type NewUserProblemAttempt = typeof userProblemAttempts.$inferInsert;
+export type DesignSession = typeof designSessions.$inferSelect;
+export type NewDesignSession = typeof designSessions.$inferInsert;
+export type DesignMessage = typeof designMessages.$inferSelect;
+export type NewDesignMessage = typeof designMessages.$inferInsert;

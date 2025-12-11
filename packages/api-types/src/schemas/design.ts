@@ -34,6 +34,48 @@ export const ChatRequestSchema = z
   })
   .openapi("ChatRequest");
 
+// Response schema for create session endpoint
+export const CreateSessionResponseSchema = z.object({
+  sessionId: z.string().uuid().openapi({
+    description: "The ID of the created design session",
+  }),
+});
+
+// Design session schema
+export const DesignSessionSchema = z.object({
+  id: z.string().uuid().openapi({
+    description: "The session ID",
+  }),
+  title: z.string().nullable().openapi({
+    description: "The session title (auto-generated or null)",
+  }),
+  createdAt: z.string().openapi({
+    description: "Session creation timestamp",
+  }),
+  updatedAt: z.string().openapi({
+    description: "Session last update timestamp",
+  }),
+});
+
+// Design message schema
+export const DesignMessageSchema = z.object({
+  id: z.string().uuid().openapi({
+    description: "The message ID",
+  }),
+  role: z.enum(["user", "assistant", "system", "tool"]).openapi({
+    description: "The role of the message sender",
+  }),
+  content: z.string().openapi({
+    description: "The message content",
+  }),
+  createdAt: z.string().openapi({
+    description: "Message creation timestamp",
+  }),
+});
+
 // Inferred types
 export type ChatMessage = z.infer<typeof ChatMessageSchema>;
 export type ChatRequest = z.infer<typeof ChatRequestSchema>;
+export type CreateSessionResponse = z.infer<typeof CreateSessionResponseSchema>;
+export type DesignSession = z.infer<typeof DesignSessionSchema>;
+export type DesignMessage = z.infer<typeof DesignMessageSchema>;

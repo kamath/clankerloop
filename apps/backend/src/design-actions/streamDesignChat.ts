@@ -1,13 +1,13 @@
-import { convertToModelMessages, streamText } from "ai";
+import { streamText } from "ai";
 import { getTracedClient } from "../utils/ai";
 import { getPostHogClient } from "../utils/analytics";
-import type { UIMessage } from "ai";
+import type { ModelMessage } from "ai";
 
 export async function streamDesignChat(
-  messages: UIMessage[],
+  messages: ModelMessage[],
   model: string,
   userId: string,
-  env: Env,
+  env: Env
 ) {
   const requestId = `design-chat-${userId}-${Date.now()}`;
   const tracedModel = getTracedClient(model, userId, requestId, model, env);
@@ -16,7 +16,7 @@ export async function streamDesignChat(
     model: tracedModel,
     system:
       "You are a helpful design assistant. Help users with system design, architecture diagrams, and technical design decisions.",
-    messages: convertToModelMessages(messages),
+    messages,
   });
 
   const phClient = getPostHogClient(env);
