@@ -1,0 +1,2 @@
+ALTER TABLE "design_messages" ADD COLUMN "sequence" integer NOT NULL;--> statement-breakpoint
+ALTER TABLE "design_messages" ADD CONSTRAINT "design_messages_design_session_id_sequence_unique" UNIQUE("design_session_id","sequence");

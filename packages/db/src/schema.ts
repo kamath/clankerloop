@@ -22,7 +22,7 @@ export const problems = pgTable("problems", {
   problemText: text("problem_text").notNull(),
   functionSignature: text("function_signature").notNull(),
   functionSignatureSchema: jsonb(
-    "function_signature_schema",
+    "function_signature_schema"
   ).$type<FunctionSignatureSchema>(),
   problemTextReworded: text("problem_text_reworded").notNull(),
   solution: text("solution"),
@@ -59,7 +59,7 @@ export const problemFocusAreas = pgTable(
       .references(() => focusAreas.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => [unique().on(table.problemId, table.focusAreaId)],
+  (table) => [unique().on(table.problemId, table.focusAreaId)]
 );
 
 export const testCases = pgTable("test_cases", {
@@ -117,7 +117,7 @@ export const problemFocusAreasRelations = relations(
       fields: [problemFocusAreas.focusAreaId],
       references: [focusAreas.id],
     }),
-  }),
+  })
 );
 
 export const testCasesRelations = relations(testCases, ({ one }) => ({
@@ -158,16 +158,20 @@ export const designSessions = pgTable("design_sessions", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const designMessages = pgTable("design_messages", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  designSessionId: uuid("design_session_id")
-    .notNull()
-    .references(() => designSessions.id, { onDelete: "cascade" }),
-  role: messageRole("role").notNull(),
-  content: text("content").notNull(),
-  contentParts: jsonb("content_parts"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const designMessages = pgTable(
+  "design_messages",
+  {
+    id: text("id").primaryKey().notNull(),
+    designSessionId: uuid("design_session_id")
+      .notNull()
+      .references(() => designSessions.id, { onDelete: "cascade" }),
+    role: messageRole("role").notNull(),
+    content: text("content").notNull(),
+    contentParts: jsonb("content_parts"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [unique().on(table.designSessionId, table.id)]
+);
 
 export const userProblemAttempts = pgTable("user_problem_attempts", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -214,12 +218,15 @@ export const userProblemAttemptsRelations = relations(
       fields: [userProblemAttempts.problemId],
       references: [problems.id],
     }),
-  }),
+  })
 );
 
-export const designSessionsRelations = relations(designSessions, ({ many }) => ({
-  messages: many(designMessages),
-}));
+export const designSessionsRelations = relations(
+  designSessions,
+  ({ many }) => ({
+    messages: many(designMessages),
+  })
+);
 
 export const designMessagesRelations = relations(designMessages, ({ one }) => ({
   session: one(designSessions, {

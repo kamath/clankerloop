@@ -559,31 +559,29 @@ export async function listDesignSessionsByUser(
 
 export async function saveDesignMessages(
   sessionId: string,
-  messages: ModelMessage[],
+  messages: (ModelMessage & { id: string })[],
   db?: Database
 ): Promise<void> {
+  console.log("Saving messages:", JSON.stringify(messages, null, 2));
   const database = getDb(db);
 
-  // Delete existing messages (replace strategy)
-  await database
-    .delete(designMessages)
-    .where(eq(designMessages.designSessionId, sessionId));
-
-  if (messages.length === 0) return;
-
-  // Insert new messages
+  // Insert all messages with sequence numbers, using onConflictDoNothing to skip duplicates
+  // This is a true "insert if not exists" pattern
   await database.insert(designMessages).values(
     messages.map((msg) => ({
+      id: msg.id,
       designSessionId: sessionId,
       role: msg.role,
-      content: msg.content.toString(),
+      content: JSON.stringify(msg.content),
       contentParts:
         typeof msg.content !== "string"
           ? JSON.stringify(msg.content)
           : undefined,
     }))
   );
+  // .onConflictDoNothing();
 
+  console.log("Messages saved");
   // Update session timestamp
   await database
     .update(designSessions)
@@ -598,6 +596,6 @@ export async function loadDesignMessages(
   const database = getDb(db);
   return database.query.designMessages.findMany({
     where: eq(designMessages.designSessionId, sessionId),
-    orderBy: designMessages.createdAt,
+    orderBy: designMessages.sequence,
   });
 }

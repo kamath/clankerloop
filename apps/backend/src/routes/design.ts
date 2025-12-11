@@ -18,7 +18,12 @@ import {
   saveDesignMessages,
   updateDesignSessionTitle,
 } from "@repo/db";
-import { convertToModelMessages, type ModelMessage, type UIMessage } from "ai";
+import {
+  convertToModelMessages,
+  createIdGenerator,
+  type ModelMessage,
+  type UIMessage,
+} from "ai";
 
 const design = new OpenAPIHono<{
   Bindings: Env;
@@ -168,6 +173,11 @@ design.openapi(sessionChatRoute, async (c) => {
   // Use messages from request (client sends full conversation)
   const allMessages = body.messages as unknown as UIMessage[];
   const normalizedMessages = convertToModelMessages(allMessages);
+  await saveDesignMessages(
+    sessionId,
+    normalizedMessages.map((m, index) => ({ ...m, id: allMessages[index].id })),
+    db
+  );
 
   const result = await streamDesignChat(
     normalizedMessages,
@@ -176,12 +186,23 @@ design.openapi(sessionChatRoute, async (c) => {
     c.env
   );
 
-  // Add onFinish callback for persistence
+  // Add onFinish callback to save both user and assistant messages
   return result.toUIMessageStreamResponse({
+    generateMessageId: createIdGenerator({
+      prefix: "design-message-",
+      size: 16,
+    }),
     async onFinish({ messages: updatedMessages }) {
       const modelMessages = convertToModelMessages(updatedMessages);
-      // Save all messages (replace strategy)
-      await saveDesignMessages(sessionId, modelMessages, db);
+      // Save all messages (append-only will save any new user + assistant messages)
+      await saveDesignMessages(
+        sessionId,
+        modelMessages.map((m, index) => ({
+          ...m,
+          id: updatedMessages[index].id,
+        })),
+        db
+      );
 
       // Auto-generate title from first assistant message if needed
       if (!session.title && modelMessages.length >= 2) {
