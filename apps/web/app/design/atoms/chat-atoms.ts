@@ -33,7 +33,7 @@ export const designChatAtomFamily = atomFamily(
   },
   (a, b) =>
     a.designSessionId === b.designSessionId &&
-    a.encryptedUserId === b.encryptedUserId
+    a.encryptedUserId === b.encryptedUserId,
 );
 
 /**
@@ -41,7 +41,7 @@ export const designChatAtomFamily = atomFamily(
  */
 export function useDesignChatAtom(
   designSessionId: string,
-  encryptedUserId: string
+  encryptedUserId: string,
 ) {
   return designChatAtomFamily({ designSessionId, encryptedUserId });
 }

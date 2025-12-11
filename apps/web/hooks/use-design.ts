@@ -10,7 +10,7 @@ import { listDesignSessions } from "@/actions/list-design-sessions";
  */
 export function useDesignSessionMessages(
   sessionId: string | null,
-  encryptedUserId?: string
+  encryptedUserId?: string,
 ) {
   const queryKey = ["designSessionMessages", sessionId];
 

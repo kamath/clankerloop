@@ -58,20 +58,19 @@ export const DesignSessionSchema = z.object({
 });
 
 // Design message schema
-export const DesignMessageSchema = z.object({
-  id: z.string().uuid().openapi({
-    description: "The message ID",
-  }),
-  role: z.enum(["user", "assistant", "system", "tool"]).openapi({
-    description: "The role of the message sender",
-  }),
-  content: z.string().openapi({
-    description: "The message content",
-  }),
-  createdAt: z.string().openapi({
-    description: "Message creation timestamp",
-  }),
-});
+export const DesignMessageSchema = z
+  .object({
+    id: z.string().uuid(),
+    role: z.enum(["user", "assistant", "system"]),
+    contentParts: z.array(
+      z.object({
+        type: z.enum(["text"]),
+        text: z.string(),
+      }),
+    ),
+    createdAt: z.string(),
+  })
+  .openapi("DesignMessage");
 
 // Inferred types
 export type ChatMessage = z.infer<typeof ChatMessageSchema>;

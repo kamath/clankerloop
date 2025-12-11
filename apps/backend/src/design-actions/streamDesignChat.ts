@@ -7,7 +7,7 @@ export async function streamDesignChat(
   messages: ModelMessage[],
   model: string,
   userId: string,
-  env: Env
+  env: Env,
 ) {
   const requestId = `design-chat-${userId}-${Date.now()}`;
   const tracedModel = getTracedClient(model, userId, requestId, model, env);

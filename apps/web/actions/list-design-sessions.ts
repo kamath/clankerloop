@@ -4,7 +4,7 @@ import { apiGet } from "@/lib/api-client";
 import type { DesignSession } from "@repo/api-types";
 
 export async function listDesignSessions(
-  encryptedUserId?: string
+  encryptedUserId?: string,
 ): Promise<DesignSession[]> {
   if (!encryptedUserId) {
     throw new Error("Encrypted user ID is required");
@@ -12,6 +12,6 @@ export async function listDesignSessions(
   return apiGet<DesignSession[]>(
     "/sessions",
     encryptedUserId,
-    "/api/v1/design"
+    "/api/v1/design",
   );
 }

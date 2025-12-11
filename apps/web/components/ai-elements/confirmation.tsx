@@ -45,7 +45,7 @@ type ConfirmationContextValue = {
 };
 
 const ConfirmationContext = createContext<ConfirmationContextValue | null>(
-  null
+  null,
 );
 
 const useConfirmation = () => {
@@ -117,9 +117,9 @@ export const ConfirmationAccepted = ({
   // Only show when approved and in response states
   if (
     !approval?.approved ||
-        // @ts-expect-error state only available in AI SDK v6
+    // @ts-expect-error state only available in AI SDK v6
     (state !== "approval-responded" &&
-        // @ts-expect-error state only available in AI SDK v6
+      // @ts-expect-error state only available in AI SDK v6
       state !== "output-denied" &&
       state !== "output-available")
   ) {
@@ -141,9 +141,9 @@ export const ConfirmationRejected = ({
   // Only show when rejected and in response states
   if (
     approval?.approved !== false ||
-        // @ts-expect-error state only available in AI SDK v6
+    // @ts-expect-error state only available in AI SDK v6
     (state !== "approval-responded" &&
-        // @ts-expect-error state only available in AI SDK v6
+      // @ts-expect-error state only available in AI SDK v6
       state !== "output-denied" &&
       state !== "output-available")
   ) {

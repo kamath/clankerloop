@@ -59,7 +59,7 @@ export function ChatPanel({ encryptedUserId }: ChatPanelProps) {
             type: "text",
             text: part.text,
           })),
-        }))
+        })),
       );
     }
   }, [designMessages, messages.length, setMessages]);
