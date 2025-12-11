@@ -22,12 +22,12 @@ app.use(
     allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     exposeHeaders: ["Content-Type"],
     maxAge: 86400, // 24 hours
-  })
+  }),
 );
 
 // Health check (no auth required)
 app.get("/health", (c) =>
-  c.json({ status: "ok", timestamp: new Date().toISOString() })
+  c.json({ status: "ok", timestamp: new Date().toISOString() }),
 );
 
 // Public R2 file serving (no auth required)
@@ -66,7 +66,7 @@ app.get("/r2/*", async (c) => {
       };
       headers.set(
         "Content-Type",
-        mimeTypes[ext || ""] || "application/octet-stream"
+        mimeTypes[ext || ""] || "application/octet-stream",
       );
     }
 
@@ -88,7 +88,7 @@ app.get("/r2/*", async (c) => {
         error: "Failed to serve file",
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      500
+      500,
     );
   }
 });
@@ -156,7 +156,7 @@ app.onError((err, c) => {
       },
       timestamp: new Date().toISOString(),
     },
-    status
+    status,
   );
 });
 
@@ -171,7 +171,7 @@ app.notFound((c) => {
       },
       timestamp: new Date().toISOString(),
     },
-    404
+    404,
   );
 });
 

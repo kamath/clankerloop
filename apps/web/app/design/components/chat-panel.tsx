@@ -133,7 +133,7 @@ export function ChatPanel({ encryptedUserId, excalidrawAPI }: ChatPanelProps) {
                 <div
                   className={cn(
                     message.role === "user" &&
-                      "flex w-full items-end justify-end"
+                      "flex w-full items-end justify-end",
                   )}
                 >
                   {message.attachments?.map((attachment) => (

@@ -69,7 +69,7 @@ const getDb = (db?: Database): Database => db ?? defaultDb;
 
 export async function createModel(
   name: string,
-  db?: Database
+  db?: Database,
 ): Promise<string> {
   const database = getDb(db);
   const [result] = await database
@@ -86,7 +86,7 @@ export async function createModel(
 
 export async function getModel(
   modelId: string,
-  db?: Database
+  db?: Database,
 ): Promise<Model | null> {
   const database = getDb(db);
   const model = await database.query.models.findFirst({
@@ -97,7 +97,7 @@ export async function getModel(
 
 export async function getModelByName(
   name: string,
-  db?: Database
+  db?: Database,
 ): Promise<Model | null> {
   const database = getDb(db);
   const model = await database.query.models.findFirst({
@@ -115,7 +115,7 @@ export async function listModels(db?: Database): Promise<Model[]> {
 
 export async function getModelForProblem(
   problemId: string,
-  db?: Database
+  db?: Database,
 ): Promise<string | null> {
   const database = getDb(db);
   const problem = await database.query.problems.findFirst({
@@ -134,7 +134,7 @@ export async function getModelForProblem(
 
 export async function createProblem(
   data?: Partial<NewProblem>,
-  db?: Database
+  db?: Database,
 ): Promise<string> {
   if (!data?.generatedByUserId) {
     throw new Error("generatedByUserId is required");
@@ -161,7 +161,7 @@ export async function createProblem(
 
 export async function getProblem(
   problemId: string,
-  db?: Database
+  db?: Database,
 ): Promise<ProblemWithTestCases> {
   const database = getDb(db);
   const problem = await database.query.problems.findFirst({
@@ -186,7 +186,7 @@ export async function getProblem(
 export async function updateProblem(
   problemId: string,
   data: Partial<Omit<NewProblem, "id">>,
-  db?: Database
+  db?: Database,
 ): Promise<void> {
   const database = getDb(db);
   await database
@@ -213,7 +213,7 @@ export async function listProblems(db?: Database): Promise<string[]> {
 export async function createTestCase(
   problemId: string,
   data: Omit<NewTestCase, "id" | "problemId" | "createdAt">,
-  db?: Database
+  db?: Database,
 ): Promise<string> {
   const database = getDb(db);
   const [result] = await database
@@ -239,7 +239,7 @@ export async function createTestCase(
 export async function updateTestCase(
   testCaseId: string,
   data: Partial<Omit<NewTestCase, "id" | "problemId" | "createdAt">>,
-  db?: Database
+  db?: Database,
 ): Promise<void> {
   const database = getDb(db);
   await database
@@ -250,7 +250,7 @@ export async function updateTestCase(
 
 export async function deleteTestCases(
   problemId: string,
-  db?: Database
+  db?: Database,
 ): Promise<void> {
   const database = getDb(db);
   await database.delete(testCases).where(eq(testCases.problemId, problemId));
@@ -258,7 +258,7 @@ export async function deleteTestCases(
 
 export async function getTestCasesByProblemId(
   problemId: string,
-  db?: Database
+  db?: Database,
 ): Promise<TestCase[]> {
   const database = getDb(db);
   return database.query.testCases.findMany({
@@ -269,7 +269,7 @@ export async function getTestCasesByProblemId(
 export async function createTestCases(
   problemId: string,
   data: Omit<NewTestCase, "id" | "problemId" | "createdAt">[],
-  db?: Database
+  db?: Database,
 ): Promise<TestCase[]> {
   if (data.length === 0) return [];
 
@@ -285,7 +285,7 @@ export async function createTestCases(
         inputCode: tc.inputCode,
         input: tc.input,
         expected: tc.expected,
-      }))
+      })),
     )
     .returning();
 }
@@ -293,7 +293,7 @@ export async function createTestCases(
 export async function replaceTestCases(
   problemId: string,
   data: Omit<NewTestCase, "id" | "problemId" | "createdAt">[],
-  db?: Database
+  db?: Database,
 ): Promise<TestCase[]> {
   // Delete existing test cases and insert new ones
   await deleteTestCases(problemId, db);
@@ -305,7 +305,7 @@ export async function replaceTestCases(
 export async function createGenerationJob(
   problemId: string,
   modelId?: string,
-  db?: Database
+  db?: Database,
 ): Promise<string> {
   const database = getDb(db);
   const [result] = await database
@@ -327,7 +327,7 @@ export async function createGenerationJob(
 
 export async function getGenerationJob(
   jobId: string,
-  db?: Database
+  db?: Database,
 ): Promise<GenerationJob | null> {
   const database = getDb(db);
   const job = await database.query.generationJobs.findFirst({
@@ -338,7 +338,7 @@ export async function getGenerationJob(
 
 export async function getLatestJobForProblem(
   problemId: string,
-  db?: Database
+  db?: Database,
 ): Promise<GenerationJob | null> {
   const database = getDb(db);
   const job = await database.query.generationJobs.findFirst({
@@ -353,7 +353,7 @@ export async function updateJobStatus(
   status: "pending" | "in_progress" | "completed" | "failed",
   currentStep?: string,
   error?: string,
-  db?: Database
+  db?: Database,
 ): Promise<void> {
   const database = getDb(db);
   await database
@@ -370,7 +370,7 @@ export async function updateJobStatus(
 export async function markStepComplete(
   jobId: string,
   step: string,
-  db?: Database
+  db?: Database,
 ): Promise<void> {
   const job = await getGenerationJob(jobId, db);
   if (!job) {
@@ -401,7 +401,7 @@ export async function listFocusAreas(db?: Database): Promise<FocusArea[]> {
 
 export async function getFocusAreasByIds(
   ids: string[],
-  db?: Database
+  db?: Database,
 ): Promise<FocusArea[]> {
   if (ids.length === 0) return [];
   const database = getDb(db);
@@ -412,7 +412,7 @@ export async function getFocusAreasByIds(
 
 export async function getFocusAreasForProblem(
   problemId: string,
-  db?: Database
+  db?: Database,
 ): Promise<FocusArea[]> {
   const database = getDb(db);
   const links = await database.query.problemFocusAreas.findMany({
@@ -427,7 +427,7 @@ export async function getFocusAreasForProblem(
 export async function linkFocusAreasToProblem(
   problemId: string,
   focusAreaIds: string[],
-  db?: Database
+  db?: Database,
 ): Promise<void> {
   if (focusAreaIds.length === 0) return;
   const database = getDb(db);
@@ -435,7 +435,7 @@ export async function linkFocusAreasToProblem(
     focusAreaIds.map((focusAreaId) => ({
       problemId,
       focusAreaId,
-    }))
+    })),
   );
 }
 
@@ -448,7 +448,7 @@ export async function createUserProblemAttempt(
     submissionCode: string;
     submissionLanguage: string;
   },
-  db?: Database
+  db?: Database,
 ): Promise<string> {
   const database = getDb(db);
   const [result] = await database
@@ -472,7 +472,7 @@ export async function createUserProblemAttempt(
 export async function updateUserProblemAttemptStatus(
   attemptId: string,
   status: "attempt" | "run" | "pass",
-  db?: Database
+  db?: Database,
 ): Promise<void> {
   const database = getDb(db);
   await database
@@ -486,7 +486,7 @@ export async function updateUserProblemAttemptStatus(
 
 export async function getMostRecentProblemByUser(
   userId: string,
-  db?: Database
+  db?: Database,
 ): Promise<string | null> {
   const database = getDb(db);
   const problem = await database.query.problems.findFirst({
@@ -501,7 +501,7 @@ export async function getMostRecentProblemByUser(
 export async function createDesignSession(
   userId: string,
   title?: string,
-  db?: Database
+  db?: Database,
 ): Promise<string> {
   const database = getDb(db);
   const [result] = await database
@@ -521,7 +521,7 @@ export async function createDesignSession(
 
 export async function getDesignSession(
   sessionId: string,
-  db?: Database
+  db?: Database,
 ): Promise<DesignSession | null> {
   const database = getDb(db);
   const session = await database.query.designSessions.findFirst({
@@ -533,7 +533,7 @@ export async function getDesignSession(
 export async function updateDesignSessionTitle(
   sessionId: string,
   title: string,
-  db?: Database
+  db?: Database,
 ): Promise<void> {
   const database = getDb(db);
   await database
@@ -547,7 +547,7 @@ export async function updateDesignSessionTitle(
 
 export async function listDesignSessionsByUser(
   userId: string,
-  db?: Database
+  db?: Database,
 ): Promise<DesignSession[]> {
   const database = getDb(db);
   return database.query.designSessions.findMany({
@@ -562,7 +562,7 @@ export async function saveDesignMessages(
   sessionId: string,
   messages: (ModelMessage & { id: string })[],
   uploadBase64Image: (key: string, filePart: FilePart) => Promise<void>,
-  db?: Database
+  db?: Database,
 ): Promise<void> {
   console.log("Saving messages:", JSON.stringify(messages, null, 2));
   const database = getDb(db);
@@ -596,7 +596,7 @@ export async function saveDesignMessages(
           content: JSON.stringify(msg.content),
           contentParts: content,
         };
-      })
+      }),
     )
     .onConflictDoNothing();
 
@@ -644,7 +644,7 @@ export async function saveDesignMessages(
 export async function loadDesignMessages(
   sessionId: string,
   db?: Database,
-  r2BaseUrl?: string
+  r2BaseUrl?: string,
 ): Promise<
   {
     id: string;
@@ -685,7 +685,7 @@ export async function loadDesignMessages(
           if (fp.filename) {
             mediaTypeMap.set(
               fp.filename,
-              fp.mediaType || fp.mimeType || "application/octet-stream"
+              fp.mediaType || fp.mimeType || "application/octet-stream",
             );
           }
         }

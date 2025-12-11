@@ -66,7 +66,7 @@ export const DesignMessageSchema = z
       z.object({
         type: z.enum(["text"]),
         text: z.string(),
-      })
+      }),
     ),
     createdAt: z.string(),
     attachments: z
@@ -76,7 +76,7 @@ export const DesignMessageSchema = z
           url: z.string(),
           mediaType: z.string(),
           filename: z.string(),
-        })
+        }),
       )
       .nullable()
       .openapi({
