@@ -1,6 +1,6 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
-import { streamDesignChat } from "@/design-actions";
+import { streamDesignChat, createUploadBase64Image } from "@/design-actions";
 import {
   chatRoute,
   createSessionRoute,
@@ -212,9 +212,14 @@ design.openapi(sessionChatRoute, async (c) => {
   // Use messages from request (client sends full conversation)
   const allMessages = body.messages as unknown as UIMessage[];
   const normalizedMessages = convertToModelMessages(allMessages);
+
+  // Create R2 upload function for base64 images
+  const uploadBase64Image = createUploadBase64Image(c.env.clankerrank);
+
   await saveDesignMessages(
     sessionId,
     normalizedMessages.map((m, index) => ({ ...m, id: allMessages[index].id })),
+    uploadBase64Image,
     db,
   );
 
@@ -233,6 +238,7 @@ design.openapi(sessionChatRoute, async (c) => {
     }),
     async onFinish({ messages: updatedMessages }) {
       const modelMessages = convertToModelMessages(updatedMessages);
+
       // Save all messages (append-only will save any new user + assistant messages)
       await saveDesignMessages(
         sessionId,
@@ -240,6 +246,7 @@ design.openapi(sessionChatRoute, async (c) => {
           ...m,
           id: updatedMessages[index].id,
         })),
+        uploadBase64Image,
         db,
       );
 
