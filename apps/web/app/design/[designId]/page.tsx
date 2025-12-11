@@ -5,12 +5,7 @@ import { encryptUserId } from "@/lib/auth-utils";
 import { ClientFacingUserObject } from "@/lib/auth-types";
 import ExcalidrawWrapper from "../components/excalidraw-wrapper";
 
-export default async function Page({
-  params,
-}: {
-  params: Promise<{ designId: string }>;
-}) {
-  const { designId } = await params;
+export default async function Page() {
   const { user } = await withAuth({
     ensureSignedIn: true,
   });
@@ -40,7 +35,6 @@ export default async function Page({
 
   return (
     <ExcalidrawWrapper
-      designSessionId={designId}
       encryptedUserId={encryptedUserId}
       user={clientFacingUser}
     />

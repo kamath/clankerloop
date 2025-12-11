@@ -43,3 +43,4 @@ export function AppHeader({ user }: AppHeaderProps) {
     </div>
   );
 }
+

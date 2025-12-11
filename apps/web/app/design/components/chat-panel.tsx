@@ -4,11 +4,21 @@ import { useState, useEffect } from "react";
 import { useAtomValue } from "jotai";
 import { useParams } from "next/navigation";
 import { useChat } from "@ai-sdk/react";
-import { UIMessage } from "ai";
 import { useDesignSessionMessages } from "@/hooks/use-design";
-import { MessageResponse } from "@/components/ai-elements/message";
+import {
+  MessageAction,
+  MessageActions,
+  Message,
+  MessageContent,
+  MessageResponse,
+} from "@/components/ai-elements/message";
 import { useDesignChatAtom } from "../atoms/chat-atoms";
-import type { DesignMessage } from "@repo/api-types";
+import { CopyIcon, RefreshCcwIcon } from "lucide-react";
+import {
+  Reasoning,
+  ReasoningContent,
+  ReasoningTrigger,
+} from "@/components/ai-elements/reasoning";
 
 interface ChatPanelProps {
   encryptedUserId: string;
@@ -26,7 +36,9 @@ export function ChatPanel({ encryptedUserId }: ChatPanelProps) {
   const { chat, encryptedUserId: userId } = chatState;
 
   // useChat must be called unconditionally to maintain hook order
-  const { messages, status, setMessages, sendMessage } = useChat({ chat });
+  const { messages, status, setMessages, sendMessage, regenerate } = useChat({
+    chat,
+  });
 
   // Load initial messages using React Query hook (must be called unconditionally)
   const {
@@ -40,19 +52,14 @@ export function ChatPanel({ encryptedUserId }: ChatPanelProps) {
   useEffect(() => {
     if (designMessages && designMessages.length > 0 && messages.length === 0) {
       setMessages(
-        designMessages
-          .filter(
-            (
-              msg
-            ): msg is DesignMessage & {
-              role: "user" | "assistant" | "system";
-            } => msg.role !== "tool"
-          )
-          .map((msg) => ({
-            id: msg.id,
-            role: msg.role,
-            parts: [{ type: "text", text: msg.content }],
-          }))
+        designMessages.map((msg) => ({
+          id: msg.id,
+          role: msg.role,
+          parts: msg.contentParts.map((part) => ({
+            type: "text",
+            text: part.text,
+          })),
+        }))
       );
     }
   }, [designMessages, messages.length, setMessages]);
@@ -77,10 +84,6 @@ export function ChatPanel({ encryptedUserId }: ChatPanelProps) {
 
   return (
     <div className="w-full h-full flex flex-col border-r border-gray-200 bg-white">
-      <div className="p-4 border-b border-gray-200">
-        <h2 className="text-lg font-semibold">Design Assistant</h2>
-      </div>
-
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {isLoadingMessages ? (
@@ -94,24 +97,56 @@ export function ChatPanel({ encryptedUserId }: ChatPanelProps) {
           </div>
         ) : (
           <>
-            {messages.map((message: UIMessage) => (
-              <div
-                key={message.id}
-                className={message.role === "user" ? "text-right" : "text-left"}
-              >
-                <div
-                  className={`inline-block max-w-[80%] rounded-lg p-3 ${
-                    message.role === "user"
-                      ? "bg-blue-500 text-white"
-                      : "bg-gray-100 text-gray-900"
-                  }`}
-                >
-                  {message.role === "assistant" ? (
-                    <MessageResponse>{JSON.stringify(message)}</MessageResponse>
-                  ) : (
-                    <p>{JSON.stringify(message)}</p>
-                  )}
-                </div>
+            {messages.map((message, i) => (
+              <div key={`msg-${message.id}-${i}`}>
+                {message.parts.map((part, i) => {
+                  switch (part.type) {
+                    case "text":
+                      return (
+                        <Message key={`${message.id}-${i}`} from={message.role}>
+                          <MessageContent>
+                            <MessageResponse>{part.text}</MessageResponse>
+                          </MessageContent>
+                          {message.role === "assistant" &&
+                            i === messages.length - 1 && (
+                              <MessageActions>
+                                <MessageAction
+                                  onClick={() => regenerate()}
+                                  label="Retry"
+                                >
+                                  <RefreshCcwIcon className="size-3" />
+                                </MessageAction>
+                                <MessageAction
+                                  onClick={() =>
+                                    navigator.clipboard.writeText(part.text)
+                                  }
+                                  label="Copy"
+                                >
+                                  <CopyIcon className="size-3" />
+                                </MessageAction>
+                              </MessageActions>
+                            )}
+                        </Message>
+                      );
+                    case "reasoning":
+                      return (
+                        <Reasoning
+                          key={`${message.id}-${i}`}
+                          className="w-full"
+                          isStreaming={
+                            status === "streaming" &&
+                            i === message.parts.length - 1 &&
+                            message.id === messages.at(-1)?.id
+                          }
+                        >
+                          <ReasoningTrigger />
+                          <ReasoningContent>{part.text}</ReasoningContent>
+                        </Reasoning>
+                      );
+                    default:
+                      return null;
+                  }
+                })}
               </div>
             ))}
             {(status === "streaming" || status === "submitted") && (

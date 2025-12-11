@@ -19,13 +19,11 @@ import {
 } from "@/components/ui/resizable";
 
 interface ExcalidrawWrapperProps {
-  designSessionId: string;
   encryptedUserId: string;
   user: ClientFacingUserObject;
 }
 
 export default function ExcalidrawWrapper({
-  designSessionId,
   encryptedUserId,
   user,
 }: ExcalidrawWrapperProps) {
@@ -97,7 +95,7 @@ export default function ExcalidrawWrapper({
 
     setIsGenerating(true);
     try {
-      const currentElements = excalidrawAPI.getSceneElements();
+      //   const currentElements = excalidrawAPI.getSceneElements();
       //   const newElements = await generateShapes(prompt, [...currentElements]);
       // Cast to expected type - schema ensures valid structure
       //   const convertedElements = convertToExcalidrawElements(
