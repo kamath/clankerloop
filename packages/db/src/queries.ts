@@ -650,17 +650,65 @@ export async function loadDesignMessages(
     role: "user" | "assistant" | "system" | "tool";
     contentParts: UIMessage["parts"];
     createdAt: string;
+    attachments: {
+      type: "file";
+      url: string;
+      mediaType: string;
+      filename: string;
+    }[];
   }[]
 > {
   const database = getDb(db);
   const messages = await database.query.designMessages.findMany({
     where: eq(designMessages.designSessionId, sessionId),
     orderBy: designMessages.createdAt,
+    with: {
+      attachments: true,
+    },
   });
-  return messages.map((msg) => ({
-    id: msg.id,
-    role: msg.role,
-    contentParts: JSON.parse(msg.content) as UIMessage["parts"],
-    createdAt: msg.createdAt.toISOString(),
-  }));
+
+  return messages.map((msg) => {
+    const contentParts = JSON.parse(msg.content) as UIMessage["parts"];
+
+    // Build mediaType map from contentParts
+    const mediaTypeMap = new Map<string, string>();
+    if (Array.isArray(contentParts)) {
+      for (const part of contentParts) {
+        if (part?.type === "file" && "filename" in part) {
+          const fp = part as {
+            filename?: string;
+            mediaType?: string;
+            mimeType?: string;
+          };
+          if (fp.filename) {
+            mediaTypeMap.set(
+              fp.filename,
+              fp.mediaType || fp.mimeType || "application/octet-stream"
+            );
+          }
+        }
+      }
+    }
+
+    const attachments = msg.attachments.map((attachment) => {
+      const filename = attachment.id.split("/").pop() || "";
+      // R2 public URL - using the R2 key directly
+      const url = `https://clankerrank.pub.r2.dev/${attachment.id}`;
+
+      return {
+        type: "file" as const,
+        url,
+        mediaType: mediaTypeMap.get(filename) || "application/octet-stream",
+        filename,
+      };
+    });
+
+    return {
+      id: msg.id,
+      role: msg.role,
+      contentParts,
+      createdAt: msg.createdAt.toISOString(),
+      attachments,
+    };
+  });
 }

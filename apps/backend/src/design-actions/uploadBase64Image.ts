@@ -6,7 +6,7 @@ import type { FilePart } from "ai";
  * @returns A function that uploads a FilePart to R2
  */
 export function createUploadBase64Image(
-  r2Bucket: R2Bucket
+  r2Bucket: R2Bucket,
 ): (key: string, filePart: FilePart) => Promise<void> {
   return async (key: string, filePart: FilePart): Promise<void> => {
     if (!("data" in filePart) || !filePart.data) {
