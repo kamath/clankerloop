@@ -11,6 +11,7 @@ import {
   Message,
   MessageContent,
   MessageResponse,
+  MessageAttachment,
 } from "@/components/ai-elements/message";
 import { useDesignChatAtom } from "../atoms/chat-atoms";
 import { CopyIcon, RefreshCcwIcon } from "lucide-react";
@@ -20,6 +21,8 @@ import {
   ReasoningTrigger,
 } from "@/components/ai-elements/reasoning";
 import { exportToCanvas, Excalidraw } from "@excalidraw/excalidraw";
+import { FilePart, FileUIPart, UIMessage } from "ai";
+import { DesignMessage } from "../../../../../packages/api-types/src/schemas/design";
 
 interface ChatPanelProps {
   encryptedUserId: string;
@@ -42,9 +45,10 @@ export function ChatPanel({ encryptedUserId, excalidrawAPI }: ChatPanelProps) {
   const { chat, encryptedUserId: userId } = chatState;
 
   // useChat must be called unconditionally to maintain hook order
-  const { messages, status, setMessages, sendMessage, regenerate } = useChat({
-    chat,
-  });
+  const { messages, status, setMessages, sendMessage, regenerate } =
+    useChat<DesignMessage>({
+      chat,
+    });
 
   // Load initial messages using React Query hook (must be called unconditionally)
   const {
@@ -57,16 +61,8 @@ export function ChatPanel({ encryptedUserId, excalidrawAPI }: ChatPanelProps) {
   // Must be called before early return to maintain hook order
   useEffect(() => {
     if (designMessages && designMessages.length > 0 && messages.length === 0) {
-      setMessages(
-        designMessages.map((msg) => ({
-          id: msg.id,
-          role: msg.role,
-          parts: msg.contentParts.map((part) => ({
-            type: "text",
-            text: part.text,
-          })),
-        })),
-      );
+      console.log("designMessages", designMessages);
+      setMessages(designMessages);
     }
   }, [designMessages, messages.length, setMessages]);
 
@@ -133,6 +129,15 @@ export function ChatPanel({ encryptedUserId, excalidrawAPI }: ChatPanelProps) {
           <>
             {messages.map((message, i) => (
               <div key={`msg-${message.id}-${i}`}>
+                {message.attachments?.map((attachment) => (
+                  <>
+                    <p>{JSON.stringify(attachment)}</p>
+                    <MessageAttachment
+                      key={`${message.id}-${i}-attachment`}
+                      data={attachment}
+                    />
+                  </>
+                ))}
                 {message.parts.map((part, i) => {
                   switch (part.type) {
                     case "text":
@@ -161,21 +166,6 @@ export function ChatPanel({ encryptedUserId, excalidrawAPI }: ChatPanelProps) {
                               </MessageActions>
                             )}
                         </Message>
-                      );
-                    case "reasoning":
-                      return (
-                        <Reasoning
-                          key={`${message.id}-${i}`}
-                          className="w-full"
-                          isStreaming={
-                            status === "streaming" &&
-                            i === message.parts.length - 1 &&
-                            message.id === messages.at(-1)?.id
-                          }
-                        >
-                          <ReasoningTrigger />
-                          <ReasoningContent>{part.text}</ReasoningContent>
-                        </Reasoning>
                       );
                     default:
                       return null;

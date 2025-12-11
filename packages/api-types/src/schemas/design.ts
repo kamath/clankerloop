@@ -62,13 +62,26 @@ export const DesignMessageSchema = z
   .object({
     id: z.string().uuid(),
     role: z.enum(["user", "assistant", "system"]),
-    contentParts: z.array(
+    parts: z.array(
       z.object({
         type: z.enum(["text"]),
         text: z.string(),
-      }),
+      })
     ),
     createdAt: z.string(),
+    attachments: z
+      .array(
+        z.object({
+          type: z.enum(["file"]),
+          url: z.string(),
+          mediaType: z.string(),
+          filename: z.string(),
+        })
+      )
+      .nullable()
+      .openapi({
+        description: "Attachments for the message",
+      }),
   })
   .openapi("DesignMessage");
 

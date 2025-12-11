@@ -3,10 +3,11 @@
 import { atom } from "jotai";
 import { atomFamily } from "jotai/utils";
 import { Chat } from "@ai-sdk/react";
-import { DefaultChatTransport, UIMessage } from "ai";
+import { DefaultChatTransport } from "ai";
+import { DesignMessage } from "../../../../../packages/api-types/src/schemas/design";
 
 interface DesignChatState {
-  chat: Chat<UIMessage>;
+  chat: Chat<DesignMessage>;
   encryptedUserId: string;
 }
 
@@ -19,7 +20,7 @@ export const designChatAtomFamily = atomFamily(
     const { designSessionId, encryptedUserId } = params;
 
     // Create a new Chat instance with session-specific transport
-    const chat = new Chat<UIMessage>({
+    const chat = new Chat<DesignMessage>({
       id: designSessionId,
       transport: new DefaultChatTransport({
         api: `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/design/sessions/${designSessionId}/chat`,
@@ -33,7 +34,7 @@ export const designChatAtomFamily = atomFamily(
   },
   (a, b) =>
     a.designSessionId === b.designSessionId &&
-    a.encryptedUserId === b.encryptedUserId,
+    a.encryptedUserId === b.encryptedUserId
 );
 
 /**
@@ -41,7 +42,7 @@ export const designChatAtomFamily = atomFamily(
  */
 export function useDesignChatAtom(
   designSessionId: string,
-  encryptedUserId: string,
+  encryptedUserId: string
 ) {
   return designChatAtomFamily({ designSessionId, encryptedUserId });
 }
