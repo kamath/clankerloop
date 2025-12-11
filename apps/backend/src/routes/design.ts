@@ -131,7 +131,7 @@ design.openapi(getSessionMessagesRoute, async (c) => {
     throw new HTTPException(403, { message: "Access denied" });
   }
 
-  const messages = await loadDesignMessages(sessionId, db);
+  const messages = await loadDesignMessages(sessionId, db, c.env.R2_BASE_URL);
   console.log("Loaded messages:", JSON.stringify(messages, null, 2));
 
   // Transform messages to match DesignMessageSchema

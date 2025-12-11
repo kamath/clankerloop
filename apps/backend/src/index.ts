@@ -22,13 +22,76 @@ app.use(
     allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     exposeHeaders: ["Content-Type"],
     maxAge: 86400, // 24 hours
-  }),
+  })
 );
 
 // Health check (no auth required)
 app.get("/health", (c) =>
-  c.json({ status: "ok", timestamp: new Date().toISOString() }),
+  c.json({ status: "ok", timestamp: new Date().toISOString() })
 );
+
+// Public R2 file serving (no auth required)
+app.get("/r2/*", async (c) => {
+  const path = c.req.path.replace("/r2/", "");
+
+  if (!path) {
+    return c.json({ error: "File path required" }, 400);
+  }
+
+  try {
+    const object = await c.env.clankerrank.get(path);
+
+    if (!object) {
+      return c.json({ error: "File not found" }, 404);
+    }
+
+    // Set appropriate headers
+    const headers = new Headers();
+
+    // Set content type if available
+    if (object.httpMetadata?.contentType) {
+      headers.set("Content-Type", object.httpMetadata.contentType);
+    } else {
+      // Try to infer from file extension
+      const ext = path.split(".").pop()?.toLowerCase();
+      const mimeTypes: Record<string, string> = {
+        png: "image/png",
+        jpg: "image/jpeg",
+        jpeg: "image/jpeg",
+        gif: "image/gif",
+        webp: "image/webp",
+        svg: "image/svg+xml",
+        pdf: "application/pdf",
+        json: "application/json",
+      };
+      headers.set(
+        "Content-Type",
+        mimeTypes[ext || ""] || "application/octet-stream"
+      );
+    }
+
+    // Set cache headers
+    headers.set("Cache-Control", "public, max-age=31536000, immutable");
+
+    // Set CORS headers
+    headers.set("Access-Control-Allow-Origin", "*");
+
+    // Return the object body with headers
+    return new Response(object.body, {
+      headers,
+      status: 200,
+    });
+  } catch (error) {
+    console.error("Error serving R2 file:", error);
+    return c.json(
+      {
+        error: "Failed to serve file",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      500
+    );
+  }
+});
 
 // Register security scheme for OpenAPI docs
 app.openAPIRegistry.registerComponent("securitySchemes", "ApiKeyAuth", {
@@ -93,7 +156,7 @@ app.onError((err, c) => {
       },
       timestamp: new Date().toISOString(),
     },
-    status,
+    status
   );
 });
 
@@ -108,7 +171,7 @@ app.notFound((c) => {
       },
       timestamp: new Date().toISOString(),
     },
-    404,
+    404
   );
 });
 

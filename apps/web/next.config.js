@@ -18,7 +18,7 @@ const nextConfig = {
 		remotePatterns: [
 			{
 				protocol: "https",
-				hostname: "clankerrank.pub.r2.dev",
+				hostname: "pub-bf33e0c213b5411c9c6cf09450dc90d5.r2.dev",
 			},
 		],
 	},

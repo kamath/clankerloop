@@ -23,6 +23,7 @@ import {
 import { exportToCanvas, Excalidraw } from "@excalidraw/excalidraw";
 import { FilePart, FileUIPart, UIMessage } from "ai";
 import { DesignMessage } from "../../../../../packages/api-types/src/schemas/design";
+import { cn } from "@/lib/utils";
 
 interface ChatPanelProps {
   encryptedUserId: string;
@@ -129,15 +130,21 @@ export function ChatPanel({ encryptedUserId, excalidrawAPI }: ChatPanelProps) {
           <>
             {messages.map((message, i) => (
               <div key={`msg-${message.id}-${i}`}>
-                {message.attachments?.map((attachment) => (
-                  <>
-                    <p>{JSON.stringify(attachment)}</p>
-                    <MessageAttachment
-                      key={`${message.id}-${i}-attachment`}
-                      data={attachment}
-                    />
-                  </>
-                ))}
+                <div
+                  className={cn(
+                    message.role === "user" &&
+                      "flex w-full items-end justify-end"
+                  )}
+                >
+                  {message.attachments?.map((attachment) => (
+                    <>
+                      <MessageAttachment
+                        key={`${message.id}-${i}-attachment`}
+                        data={attachment}
+                      />
+                    </>
+                  ))}
+                </div>
                 {message.parts.map((part, i) => {
                   switch (part.type) {
                     case "text":
