@@ -567,19 +567,21 @@ export async function saveDesignMessages(
 
   // Insert all messages with sequence numbers, using onConflictDoNothing to skip duplicates
   // This is a true "insert if not exists" pattern
-  await database.insert(designMessages).values(
-    messages.map((msg) => ({
-      id: msg.id,
-      designSessionId: sessionId,
-      role: msg.role,
-      content: JSON.stringify(msg.content),
-      contentParts:
-        typeof msg.content !== "string"
-          ? JSON.stringify(msg.content)
-          : undefined,
-    }))
-  );
-  // .onConflictDoNothing();
+  await database
+    .insert(designMessages)
+    .values(
+      messages.map((msg) => ({
+        id: msg.id,
+        designSessionId: sessionId,
+        role: msg.role,
+        content: JSON.stringify(msg.content),
+        contentParts:
+          typeof msg.content !== "string"
+            ? JSON.stringify(msg.content)
+            : undefined,
+      }))
+    )
+    .onConflictDoNothing();
 
   console.log("Messages saved");
   // Update session timestamp
