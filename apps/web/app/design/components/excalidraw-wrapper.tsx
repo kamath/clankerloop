@@ -118,7 +118,10 @@ export default function ExcalidrawWrapper({
       <ResizablePanelGroup direction="horizontal" className="flex-1 min-h-0">
         {/* Chat panel - left side */}
         <ResizablePanel defaultSize={30} minSize={20} maxSize={50}>
-          <ChatPanel encryptedUserId={encryptedUserId} />
+          <ChatPanel
+            encryptedUserId={encryptedUserId}
+            excalidrawAPI={excalidrawAPI}
+          />
         </ResizablePanel>
 
         <ResizableHandle withHandle />

@@ -19,12 +19,18 @@ import {
   ReasoningContent,
   ReasoningTrigger,
 } from "@/components/ai-elements/reasoning";
+import { exportToCanvas, Excalidraw } from "@excalidraw/excalidraw";
 
 interface ChatPanelProps {
   encryptedUserId: string;
+  excalidrawAPI:
+    | Parameters<
+        NonNullable<React.ComponentProps<typeof Excalidraw>["excalidrawAPI"]>
+      >[0]
+    | null;
 }
 
-export function ChatPanel({ encryptedUserId }: ChatPanelProps) {
+export function ChatPanel({ encryptedUserId, excalidrawAPI }: ChatPanelProps) {
   const [prompt, setPrompt] = useState("");
   const params = useParams();
   const designSessionId = (params.designId as string) ?? "";
@@ -59,7 +65,7 @@ export function ChatPanel({ encryptedUserId }: ChatPanelProps) {
             type: "text",
             text: part.text,
           })),
-        })),
+        }))
       );
     }
   }, [designMessages, messages.length, setMessages]);
@@ -73,9 +79,37 @@ export function ChatPanel({ encryptedUserId }: ChatPanelProps) {
     e.preventDefault();
     if (!prompt.trim() || isLoadingMessages) return;
 
-    await sendMessage({
-      text: prompt,
-    });
+    // Export Excalidraw scene as base64 image
+    if (excalidrawAPI) {
+      try {
+        const elements = excalidrawAPI.getSceneElements();
+        const appState = excalidrawAPI.getAppState();
+        const files = excalidrawAPI.getFiles();
+
+        const canvas = await exportToCanvas({
+          elements,
+          appState,
+          files,
+          getDimensions: () => ({ width: 800, height: 600, scale: 1 }),
+        });
+
+        const base64Image = canvas.toDataURL("image/png");
+        console.log("Excalidraw image (base64):", base64Image);
+        await sendMessage({
+          text: prompt,
+          files: [
+            {
+              type: "file",
+              filename: "excalidraw.png",
+              mediaType: "image/png",
+              url: base64Image,
+            },
+          ],
+        });
+      } catch (error) {
+        console.error("Failed to export Excalidraw image:", error);
+      }
+    }
     setPrompt("");
   };
 
