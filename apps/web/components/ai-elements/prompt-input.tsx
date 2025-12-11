@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -611,7 +612,7 @@ export const PromptInput = ({
   useEffect(() => {
     const form = formRef.current;
     if (!form) return;
-    if (globalDrop) return // when global drop is on, let the document-level handler own drops
+    if (globalDrop) return; // when global drop is on, let the document-level handler own drops
 
     const onDragOver = (e: DragEvent) => {
       if (e.dataTransfer?.types?.includes("Files")) {
@@ -666,7 +667,7 @@ export const PromptInput = ({
         }
       }
     },
-     
+
     [usingProvider]
   );
 
@@ -726,7 +727,7 @@ export const PromptInput = ({
 
     // Convert blob URLs to data URLs asynchronously
     Promise.all(
-      files.map(async ({ id, ...item }) => {
+      files.map(async ({ ...item }) => {
         if (item.url && item.url.startsWith("blob:")) {
           const dataUrl = await convertBlobUrlToDataUrl(item.url);
           // If conversion failed, keep the original blob URL
@@ -1060,13 +1061,13 @@ interface SpeechRecognition extends EventTarget {
   lang: string;
   start(): void;
   stop(): void;
-  onstart: ((this: SpeechRecognition, ev: Event) => any) | null;
-  onend: ((this: SpeechRecognition, ev: Event) => any) | null;
+  onstart: ((this: SpeechRecognition, ev: Event) => void) | null;
+  onend: ((this: SpeechRecognition, ev: Event) => void) | null;
   onresult:
-    | ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any)
+    | ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => void)
     | null;
   onerror:
-    | ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => any)
+    | ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => void)
     | null;
 }
 
@@ -1153,7 +1154,7 @@ export const PromptInputSpeechButton = ({
 
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const result = event.results[i];
-          if (result.isFinal) {
+          if (result?.isFinal) {
             finalTranscript += result[0]?.transcript ?? "";
           }
         }

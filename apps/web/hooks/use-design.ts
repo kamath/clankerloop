@@ -4,7 +4,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getDesignSessionMessages } from "@/actions/get-design-session-messages";
 import { createDesignSession } from "@/actions/create-design-session";
 import { listDesignSessions } from "@/actions/list-design-sessions";
-import type { DesignMessage, DesignSession } from "@repo/api-types";
 
 /**
  * Hook to fetch design session messages

@@ -6,12 +6,8 @@ export type ImageProps = Experimental_GeneratedImage & {
   alt?: string;
 };
 
-export const Image = ({
-  base64,
-  uint8Array,
-  mediaType,
-  ...props
-}: ImageProps) => (
+export const Image = ({ base64, mediaType, ...props }: ImageProps) => (
+  // eslint-disable-next-line @next/next/no-img-element
   <img
     {...props}
     alt={props.alt}
