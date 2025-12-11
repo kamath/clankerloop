@@ -173,13 +173,6 @@ export const designMessages = pgTable(
   (table) => [unique().on(table.designSessionId, table.id)],
 );
 
-export const attachments = pgTable("attachments", {
-  id: text("id").primaryKey().notNull(),
-  messageId: text("message_id")
-    .notNull()
-    .references(() => designMessages.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
 
 export const userProblemAttempts = pgTable("user_problem_attempts", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -238,21 +231,13 @@ export const designSessionsRelations = relations(
 
 export const designMessagesRelations = relations(
   designMessages,
-  ({ one, many }) => ({
+  ({ one }) => ({
     session: one(designSessions, {
       fields: [designMessages.designSessionId],
       references: [designSessions.id],
     }),
-    attachments: many(attachments),
   }),
 );
-
-export const attachmentsRelations = relations(attachments, ({ one }) => ({
-  message: one(designMessages, {
-    fields: [attachments.messageId],
-    references: [designMessages.id],
-  }),
-}));
 
 // Type exports
 export type Model = typeof models.$inferSelect;
@@ -273,5 +258,3 @@ export type DesignSession = typeof designSessions.$inferSelect;
 export type NewDesignSession = typeof designSessions.$inferInsert;
 export type DesignMessage = typeof designMessages.$inferSelect;
 export type NewDesignMessage = typeof designMessages.$inferInsert;
-export type Attachment = typeof attachments.$inferSelect;
-export type NewAttachment = typeof attachments.$inferInsert;

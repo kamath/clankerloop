@@ -21,7 +21,6 @@ import {
   ReasoningTrigger,
 } from "@/components/ai-elements/reasoning";
 import { exportToCanvas, Excalidraw } from "@excalidraw/excalidraw";
-import { FilePart, FileUIPart, UIMessage } from "ai";
 import { DesignMessage } from "../../../../../packages/api-types/src/schemas/design";
 import { cn } from "@/lib/utils";
 
@@ -130,26 +129,26 @@ export function ChatPanel({ encryptedUserId, excalidrawAPI }: ChatPanelProps) {
           <>
             {messages.map((message, i) => (
               <div key={`msg-${message.id}-${i}`}>
-                <div
-                  className={cn(
-                    message.role === "user" &&
-                      "flex w-full items-end justify-end",
-                  )}
-                >
-                  {message.attachments?.map((attachment) => (
-                    <>
-                      <MessageAttachment
-                        key={`${message.id}-${i}-attachment`}
-                        data={attachment}
-                      />
-                    </>
-                  ))}
-                </div>
-                {message.parts.map((part, i) => {
+                {message.parts.map((part, partIndex) => {
                   switch (part.type) {
+                    case "file":
+                      return (
+                        <div
+                          key={`${message.id}-${partIndex}`}
+                          className={cn(
+                            message.role === "user" &&
+                              "flex w-full items-end justify-end",
+                          )}
+                        >
+                          <MessageAttachment data={part} />
+                        </div>
+                      );
                     case "text":
                       return (
-                        <Message key={`${message.id}-${i}`} from={message.role}>
+                        <Message
+                          key={`${message.id}-${partIndex}`}
+                          from={message.role}
+                        >
                           <MessageContent>
                             <MessageResponse>{part.text}</MessageResponse>
                           </MessageContent>

@@ -127,6 +127,13 @@
       "when": 1765470842181,
       "tag": "0017_free_thor",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1765492627453,
+      "tag": "0018_wide_lila_cheney",
+      "breakpoints": true
     }
   ]
 }

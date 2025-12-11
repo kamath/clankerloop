@@ -28,7 +28,6 @@ import {
   type NewDesignSession,
   type DesignMessage,
   type NewDesignMessage,
-  attachments,
 } from "./schema";
 import type { FilePart, ModelMessage, UIMessage } from "ai";
 
@@ -567,71 +566,66 @@ export async function saveDesignMessages(
   console.log("Saving messages:", JSON.stringify(messages, null, 2));
   const database = getDb(db);
 
-  // Insert all messages with sequence numbers, using onConflictDoNothing to skip duplicates
-  // This is a true "insert if not exists" pattern
-  await database
-    .insert(designMessages)
-    .values(
-      messages.map((msg) => {
-        const textParts: unknown[] = [];
-        const fileParts: FilePart[] = [];
-        if (Array.isArray(msg.content)) {
-          msg.content.forEach((part) => {
-            if (part.type === "file") {
-              fileParts.push(part);
-            } else {
-              textParts.push(part);
-            }
-          });
-        }
-
-        const content = Array.isArray(msg.content)
-          ? msg.content
-          : JSON.stringify(textParts);
-
+  // Process messages: upload files and replace base64 with R2 keys
+  const processedMessages = await Promise.all(
+    messages.map(async (msg) => {
+      if (!Array.isArray(msg.content)) {
         return {
           id: msg.id,
           designSessionId: sessionId,
           role: msg.role,
           content: JSON.stringify(msg.content),
-          contentParts: content,
+          contentParts: msg.content,
         };
-      }),
-    )
-    .onConflictDoNothing();
-
-  // Upload files to R2
-  for (const msg of messages) {
-    const fileParts: FilePart[] = [];
-    if (Array.isArray(msg.content)) {
-      msg.content.forEach((part) => {
-        if (part.type === "file") {
-          fileParts.push(part);
-        }
-      });
-    }
-
-    // Upload each file part
-    for (let index = 0; index < fileParts.length; index++) {
-      const filePart = fileParts[index];
-      const r2Key = `${sessionId}/${msg.id}/${filePart.filename}`;
-
-      try {
-        await uploadBase64Image(r2Key, filePart);
-        // Add attachment record to database
-        await database
-          .insert(attachments)
-          .values({
-            id: r2Key,
-            messageId: msg.id,
-          })
-          .onConflictDoNothing();
-      } catch (error) {
-        // Log error but don't fail the entire save operation
-        console.error(`Failed to upload file ${r2Key}:`, error);
       }
-    }
-  }
+
+      // Process content parts, uploading files and replacing URLs with R2 keys
+      const processedParts = await Promise.all(
+        msg.content.map(async (part) => {
+          if (part.type !== "file") {
+            return part;
+          }
+
+          const filePart = part as FilePart;
+          const r2Key = `${sessionId}/${msg.id}/${filePart.filename}`;
+
+          try {
+            await uploadBase64Image(r2Key, filePart);
+            // Return file part with R2 key instead of base64 data
+            return {
+              type: "file" as const,
+              url: r2Key,
+              mediaType: filePart.mediaType,
+              filename: filePart.filename,
+            };
+          } catch (error) {
+            console.error(`Failed to upload file ${r2Key}:`, error);
+            // On failure, still store the key (file may already exist)
+            return {
+              type: "file" as const,
+              url: r2Key,
+              mediaType: filePart.mediaType,
+              filename: filePart.filename,
+            };
+          }
+        }),
+      );
+
+      return {
+        id: msg.id,
+        designSessionId: sessionId,
+        role: msg.role,
+        content: JSON.stringify(msg.content),
+        contentParts: processedParts,
+      };
+    }),
+  );
+
+  // Insert all messages, using onConflictDoNothing to skip duplicates
+  await database
+    .insert(designMessages)
+    .values(processedMessages)
+    .onConflictDoNothing();
 
   console.log("Messages saved");
   // Update session timestamp
@@ -649,68 +643,44 @@ export async function loadDesignMessages(
   {
     id: string;
     role: "user" | "assistant" | "system" | "tool";
-    contentParts: UIMessage["parts"];
+    parts: UIMessage["parts"];
     createdAt: string;
-    attachments: {
-      type: "file";
-      url: string;
-      mediaType: string;
-      filename: string;
-    }[];
   }[]
 > {
   const database = getDb(db);
   const messages = await database.query.designMessages.findMany({
     where: eq(designMessages.designSessionId, sessionId),
     orderBy: designMessages.createdAt,
-    with: {
-      attachments: true,
-    },
   });
 
-  // Use provided base URL or fall back to custom domain
   return messages.map((msg) => {
-    const contentParts = JSON.parse(msg.content) as UIMessage["parts"];
+    // contentParts already has the processed structure with R2 keys
+    const storedParts = msg.contentParts as UIMessage["parts"] | null;
 
-    // Build mediaType map from contentParts
-    const mediaTypeMap = new Map<string, string>();
-    if (Array.isArray(contentParts)) {
-      for (const part of contentParts) {
-        if (part?.type === "file" && "filename" in part) {
-          const fp = part as {
-            filename?: string;
-            mediaType?: string;
-            mimeType?: string;
-          };
-          if (fp.filename) {
-            mediaTypeMap.set(
-              fp.filename,
-              fp.mediaType || fp.mimeType || "application/octet-stream",
-            );
+    // Transform file parts to have full R2 URLs
+    const parts: UIMessage["parts"] = Array.isArray(storedParts)
+      ? storedParts.map((part) => {
+          if (
+            part?.type === "file" &&
+            "url" in part &&
+            typeof part.url === "string" &&
+            !part.url.startsWith("http")
+          ) {
+            // Prepend R2 base URL to the stored key
+            return {
+              ...part,
+              url: `${r2BaseUrl}/${part.url}`,
+            };
           }
-        }
-      }
-    }
-
-    const attachments = msg.attachments.map((attachment) => {
-      const filename = attachment.id.split("/").pop() || "";
-      // R2 public URL - use backend route if baseUrl is provided, otherwise use custom domain
-      const url = `${r2BaseUrl}/${attachment.id}`;
-
-      return {
-        type: "file" as const,
-        url,
-        mediaType: mediaTypeMap.get(filename) || "application/octet-stream",
-        filename,
-      };
-    });
+          return part;
+        })
+      : [];
 
     return {
       id: msg.id,
       role: msg.role,
-      contentParts,
+      parts,
       createdAt: msg.createdAt.toISOString(),
-      attachments,
     };
   });
 }

@@ -74,7 +74,7 @@ design.openapi(chatRoute, async (c) => {
   }
 
   const normalizedMessages = convertToModelMessages(
-    body.messages as unknown as UIMessage[],
+    body.messages as unknown as UIMessage[]
   );
 
   try {
@@ -84,7 +84,7 @@ design.openapi(chatRoute, async (c) => {
       normalizedMessages,
       modelName,
       userId,
-      c.env,
+      c.env
     );
 
     return result.toUIMessageStreamResponse() as any;
@@ -139,15 +139,15 @@ design.openapi(getSessionMessagesRoute, async (c) => {
     .filter((msg) => msg.role !== "tool") // Filter out tool messages
     .map((msg) => {
       // Transform contentParts to match schema format
-      const contentParts = Array.isArray(msg.contentParts)
-        ? msg.contentParts
+      const contentParts = Array.isArray(msg.parts)
+        ? msg.parts
             .filter(
               (part): part is { type: "text"; text: string } =>
                 typeof part === "object" &&
                 part !== null &&
                 "type" in part &&
                 part.type === "text" &&
-                "text" in part,
+                "text" in part
             )
             .map((part) => ({
               type: "text" as const,
@@ -155,7 +155,6 @@ design.openapi(getSessionMessagesRoute, async (c) => {
                 typeof part.text === "string"
                   ? part.text
                   : String(part.text || ""),
-              attachments: msg.attachments,
             }))
         : [];
 
@@ -164,7 +163,6 @@ design.openapi(getSessionMessagesRoute, async (c) => {
         role: msg.role as "user" | "assistant" | "system",
         parts: contentParts,
         createdAt: msg.createdAt,
-        attachments: msg.attachments,
       };
     });
 
@@ -173,7 +171,7 @@ design.openapi(getSessionMessagesRoute, async (c) => {
       success: true as const,
       data: transformedMessages,
     },
-    200,
+    200
   );
 });
 
@@ -222,14 +220,14 @@ design.openapi(sessionChatRoute, async (c) => {
     sessionId,
     normalizedMessages.map((m, index) => ({ ...m, id: allMessages[index].id })),
     uploadBase64Image,
-    db,
+    db
   );
 
   const result = await streamDesignChat(
     normalizedMessages,
     modelName,
     userId,
-    c.env,
+    c.env
   );
 
   // Add onFinish callback to save both user and assistant messages
@@ -249,13 +247,13 @@ design.openapi(sessionChatRoute, async (c) => {
           id: updatedMessages[index].id,
         })),
         uploadBase64Image,
-        db,
+        db
       );
 
       // Auto-generate title from first assistant message if needed
       if (!session.title && modelMessages.length >= 2) {
         const firstAssistantMsg = modelMessages.find(
-          (m) => m.role === "assistant",
+          (m) => m.role === "assistant"
         );
         if (firstAssistantMsg) {
           const title = generateTitleFromMessage(firstAssistantMsg);
