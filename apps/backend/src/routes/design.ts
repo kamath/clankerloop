@@ -86,37 +86,30 @@ design.openapi(getSessionMessagesRoute, async (c) => {
   const messages = await loadDesignMessages(sessionId, db, c.env.R2_BASE_URL);
   console.log("Loaded messages:", JSON.stringify(messages, null, 2));
 
-  // Transform messages to match DesignMessageSchema
+  // Filter out tool messages and transform parts to match schema
   const transformedMessages = messages
-    .filter((msg) => msg.role !== "tool") // Filter out tool messages
-    .map((msg) => {
-      // Transform contentParts to match schema format
-      const contentParts = Array.isArray(msg.parts)
-        ? msg.parts
-            .filter(
-              (part): part is { type: "text"; text: string } =>
-                typeof part === "object" &&
-                part !== null &&
-                "type" in part &&
-                part.type === "text" &&
-                "text" in part
-            )
-            .map((part) => ({
-              type: "text" as const,
-              text:
-                typeof part.text === "string"
-                  ? part.text
-                  : String(part.text || ""),
-            }))
-        : [];
-
-      return {
-        id: msg.id,
-        role: msg.role as "user" | "assistant" | "system",
-        parts: contentParts,
-        createdAt: msg.createdAt,
-      };
-    });
+    .filter((msg) => msg.role !== "tool")
+    .map((msg) => ({
+      id: msg.id,
+      role: msg.role as "user" | "assistant" | "system",
+      parts: msg.parts
+        .filter(
+          (part): part is { type: "text"; text: string } | { type: "file"; url: string; mediaType: string; filename: string } =>
+            part.type === "text" || part.type === "file"
+        )
+        .map((part) => {
+          if (part.type === "text") {
+            return { type: "text" as const, text: part.text };
+          }
+          return {
+            type: "file" as const,
+            url: part.url,
+            mediaType: part.mediaType,
+            filename: part.filename,
+          };
+        }),
+      createdAt: msg.createdAt,
+    }));
 
   return c.json(
     {
