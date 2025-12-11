@@ -2,7 +2,6 @@ import { OpenAPIHono } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import { streamDesignChat, createUploadBase64Image } from "@/design-actions";
 import {
-  chatRoute,
   createSessionRoute,
   listSessionsRoute,
   getSessionMessagesRoute,
@@ -47,53 +46,6 @@ design.onError((err, c) => {
 
   // Re-throw to let global error handler handle it
   throw err;
-});
-
-design.openapi(chatRoute, async (c) => {
-  console.log("MADE IT HERE - Chat route - Request path:", c.req.path);
-
-  const userId = c.get("userId");
-  const db = c.get("db");
-
-  let body;
-  try {
-    body = c.req.valid("json");
-    console.log("Validated body:", JSON.stringify(body, null, 2));
-  } catch (error) {
-    console.error("Validation error:", error);
-    throw error;
-  }
-
-  const modelName = body.model || "google/gemini-2.0-flash";
-
-  const model = await getModelByName(modelName, db);
-  if (!model) {
-    throw new HTTPException(400, {
-      message: `Invalid model: "${modelName}"`,
-    });
-  }
-
-  const normalizedMessages = convertToModelMessages(
-    body.messages as unknown as UIMessage[]
-  );
-
-  try {
-    // Normalize messages: extract text from 'content' (string or array) or 'text' field
-
-    const result = await streamDesignChat(
-      normalizedMessages,
-      modelName,
-      userId,
-      c.env
-    );
-
-    return result.toUIMessageStreamResponse() as any;
-  } catch (error) {
-    console.error("Error streaming chat:", error);
-    throw new HTTPException(500, {
-      message: "Failed to stream chat response",
-    });
-  }
 });
 
 // Create session
