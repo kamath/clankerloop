@@ -12,6 +12,11 @@ import { Input } from "@/components/ui/input";
 import { ClientFacingUserObject } from "@/lib/auth-types";
 import { AppHeader } from "@/components/app-header";
 import { ChatPanel } from "./chat-panel";
+import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from "@/components/ui/resizable";
 
 interface ExcalidrawWrapperProps {
   designSessionId: string;
@@ -112,50 +117,56 @@ export default function ExcalidrawWrapper({
   return (
     <div className="w-screen h-screen flex flex-col">
       <AppHeader user={user} />
-      <div className="flex flex-1 min-h-0">
+      <ResizablePanelGroup direction="horizontal" className="flex-1 min-h-0">
         {/* Chat panel - left side */}
-        <ChatPanel encryptedUserId={encryptedUserId} />
+        <ResizablePanel defaultSize={30} minSize={20} maxSize={50}>
+          <ChatPanel encryptedUserId={encryptedUserId} />
+        </ResizablePanel>
+
+        <ResizableHandle withHandle />
 
         {/* Excalidraw canvas - right side */}
-        <div className="flex-1 flex flex-col">
-          <div className="bg-black flex gap-2 p-4">
-            {excalidrawAPI && (
-              <>
-                <Button onClick={addRandomElement}>Add Random Element</Button>
-                <Button onClick={logElementsAsJSON}>
-                  Log Elements as JSON
-                </Button>
-                <div className="flex gap-2">
-                  <Input
-                    type="text"
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
-                    placeholder="Describe a diagram..."
-                    disabled={isGenerating}
-                  />
-                  <Button
-                    onClick={handleGenerate}
-                    disabled={isGenerating || !prompt.trim()}
-                  >
-                    {isGenerating ? "Generating..." : "Generate with AI"}
+        <ResizablePanel defaultSize={70} minSize={50}>
+          <div className="flex flex-col h-full">
+            <div className="bg-black flex gap-2 p-4">
+              {excalidrawAPI && (
+                <>
+                  <Button onClick={addRandomElement}>Add Random Element</Button>
+                  <Button onClick={logElementsAsJSON}>
+                    Log Elements as JSON
                   </Button>
-                </div>
-              </>
-            )}
+                  <div className="flex gap-2">
+                    <Input
+                      type="text"
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
+                      placeholder="Describe a diagram..."
+                      disabled={isGenerating}
+                    />
+                    <Button
+                      onClick={handleGenerate}
+                      disabled={isGenerating || !prompt.trim()}
+                    >
+                      {isGenerating ? "Generating..." : "Generate with AI"}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="w-full flex-1">
+              <Excalidraw
+                excalidrawAPI={(api) => setExcalidrawAPI(api)}
+                initialData={{
+                  elements: initialElements,
+                  scrollToContent: true,
+                }}
+                //   viewModeEnabled={true}
+              />
+            </div>
           </div>
-          <div className="w-full flex-1">
-            <Excalidraw
-              excalidrawAPI={(api) => setExcalidrawAPI(api)}
-              initialData={{
-                elements: initialElements,
-                scrollToContent: true,
-              }}
-              //   viewModeEnabled={true}
-            />
-          </div>
-        </div>
-      </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </div>
   );
 }

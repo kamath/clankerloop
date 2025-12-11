@@ -76,7 +76,7 @@ export function ChatPanel({ encryptedUserId }: ChatPanelProps) {
     isLoadingMessages || status === "streaming" || status === "submitted";
 
   return (
-    <div className="w-96 h-full flex flex-col border-r border-gray-200 bg-white">
+    <div className="w-full h-full flex flex-col border-r border-gray-200 bg-white">
       <div className="p-4 border-b border-gray-200">
         <h2 className="text-lg font-semibold">Design Assistant</h2>
       </div>
