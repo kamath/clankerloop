@@ -22,7 +22,7 @@ export const problems = pgTable("problems", {
   problemText: text("problem_text").notNull(),
   functionSignature: text("function_signature").notNull(),
   functionSignatureSchema: jsonb(
-    "function_signature_schema"
+    "function_signature_schema",
   ).$type<FunctionSignatureSchema>(),
   problemTextReworded: text("problem_text_reworded").notNull(),
   solution: text("solution"),
@@ -59,7 +59,7 @@ export const problemFocusAreas = pgTable(
       .references(() => focusAreas.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => [unique().on(table.problemId, table.focusAreaId)]
+  (table) => [unique().on(table.problemId, table.focusAreaId)],
 );
 
 export const testCases = pgTable("test_cases", {
@@ -117,7 +117,7 @@ export const problemFocusAreasRelations = relations(
       fields: [problemFocusAreas.focusAreaId],
       references: [focusAreas.id],
     }),
-  })
+  }),
 );
 
 export const testCasesRelations = relations(testCases, ({ one }) => ({
@@ -170,7 +170,7 @@ export const designMessages = pgTable(
     contentParts: jsonb("content_parts"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => [unique().on(table.designSessionId, table.id)]
+  (table) => [unique().on(table.designSessionId, table.id)],
 );
 
 export const attachments = pgTable("attachments", {
@@ -226,14 +226,14 @@ export const userProblemAttemptsRelations = relations(
       fields: [userProblemAttempts.problemId],
       references: [problems.id],
     }),
-  })
+  }),
 );
 
 export const designSessionsRelations = relations(
   designSessions,
   ({ many }) => ({
     messages: many(designMessages),
-  })
+  }),
 );
 
 export const designMessagesRelations = relations(
@@ -244,7 +244,7 @@ export const designMessagesRelations = relations(
       references: [designSessions.id],
     }),
     attachments: many(attachments),
-  })
+  }),
 );
 
 export const attachmentsRelations = relations(attachments, ({ one }) => ({

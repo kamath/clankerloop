@@ -65,7 +65,7 @@ export function ChatPanel({ encryptedUserId, excalidrawAPI }: ChatPanelProps) {
             type: "text",
             text: part.text,
           })),
-        }))
+        })),
       );
     }
   }, [designMessages, messages.length, setMessages]);
