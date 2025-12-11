@@ -1,21 +1,17 @@
 "use client";
-import { useState, useMemo, useEffect } from "react";
-import { useChat } from "@ai-sdk/react";
+import { useState } from "react";
 import {
   Excalidraw,
   convertToExcalidrawElements,
 } from "@excalidraw/excalidraw";
-import { MessageResponse } from "@/components/ai-elements/message";
 // import { generateShapes } from "@/lib/ai";
 
 import "@excalidraw/excalidraw/index.css";
-import { DefaultChatTransport, UIMessage } from "ai";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ClientFacingUserObject } from "@/lib/auth-types";
 import { AppHeader } from "@/components/app-header";
-import { useDesignSessionMessages } from "@/hooks/use-design";
-import type { DesignMessage } from "@repo/api-types";
+import { ChatPanel } from "./chat-panel";
 
 interface ExcalidrawWrapperProps {
   designSessionId: string;
@@ -36,69 +32,6 @@ export default function ExcalidrawWrapper({
   >(null);
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-
-  // Load initial messages using React Query hook
-  const {
-    isLoading: isLoadingMessages,
-    data: designMessages,
-    error: messagesError,
-  } = useDesignSessionMessages(designSessionId, encryptedUserId);
-
-  // Transform DB messages to UIMessage format
-  // Filter out tool messages as UIMessage doesn't support 'tool' role
-  const initialMessages = useMemo<UIMessage[]>(() => {
-    if (!designMessages) return [];
-    return designMessages
-      .filter(
-        (
-          msg
-        ): msg is DesignMessage & {
-          role: "user" | "assistant" | "system";
-        } => msg.role !== "tool"
-      )
-      .map((msg) => ({
-        id: msg.id,
-        role: msg.role,
-        parts: [
-          {
-            type: "text" as const,
-            text: msg.content,
-          },
-        ],
-      }));
-  }, [designMessages]);
-
-  // AI SDK UI's useChat hook with session-specific endpoint
-  const { messages, sendMessage, status, setMessages } = useChat({
-    id: designSessionId,
-    messages: isLoadingMessages ? undefined : initialMessages,
-    transport: new DefaultChatTransport({
-      api: `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/design/sessions/${designSessionId}/chat`,
-      headers: {
-        "X-API-Key": encryptedUserId,
-      },
-    }),
-  });
-
-  useEffect(() => {
-    if (designMessages && designMessages.length > 0 && messages.length === 0) {
-      setMessages(
-        designMessages
-          .filter(
-            (
-              msg
-            ): msg is DesignMessage & {
-              role: "user" | "assistant" | "system";
-            } => msg.role !== "tool"
-          )
-          .map((msg) => ({
-            id: msg.id,
-            role: msg.role,
-            parts: [{ type: "text", text: msg.content }],
-          }))
-      );
-    }
-  });
 
   const initialElements = convertToExcalidrawElements([
     {
@@ -176,100 +109,12 @@ export default function ExcalidrawWrapper({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    await sendMessage({
-      text: prompt,
-    });
-  };
   return (
     <div className="w-screen h-screen flex flex-col">
       <AppHeader user={user} />
       <div className="flex flex-1 min-h-0">
         {/* Chat panel - left side */}
-        <div className="w-96 h-full flex flex-col border-r border-gray-200 bg-white">
-          <div className="p-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold">Design Assistant</h2>
-          </div>
-
-          {/* Messages area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {isLoadingMessages ? (
-              <div className="text-center text-gray-500">
-                Loading messages...
-              </div>
-            ) : messagesError ? (
-              <div className="text-center text-red-500">
-                Failed to load messages:{" "}
-                {messagesError instanceof Error
-                  ? messagesError.message
-                  : "Unknown error"}
-              </div>
-            ) : (
-              <>
-                {messages.map((message: UIMessage) => (
-                  <div
-                    key={message.id}
-                    className={
-                      message.role === "user" ? "text-right" : "text-left"
-                    }
-                  >
-                    <div
-                      className={`inline-block max-w-[80%] rounded-lg p-3 ${
-                        message.role === "user"
-                          ? "bg-blue-500 text-white"
-                          : "bg-gray-100 text-gray-900"
-                      }`}
-                    >
-                      {message.role === "assistant" ? (
-                        <MessageResponse>
-                          {JSON.stringify(message)}
-                        </MessageResponse>
-                      ) : (
-                        <p>{JSON.stringify(message)}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </>
-            )}
-            {(status === "streaming" || status === "submitted") && (
-              <div className="text-left">
-                <div className="inline-block bg-gray-100 rounded-lg p-3">
-                  <p className="text-gray-500">Thinking...</p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Input area */}
-          <form
-            onSubmit={handleSubmit}
-            className="p-4 border-t border-gray-200"
-          >
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Ask about design..."
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={status === "streaming" || status === "submitted"}
-              />
-              <button
-                type="submit"
-                disabled={
-                  status === "streaming" ||
-                  status === "submitted" ||
-                  !prompt.trim()
-                }
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
-              >
-                Send
-              </button>
-            </div>
-          </form>
-        </div>
+        <ChatPanel encryptedUserId={encryptedUserId} />
 
         {/* Excalidraw canvas - right side */}
         <div className="flex-1 flex flex-col">
