@@ -1,43 +1,53 @@
 {
-  "name": "clankerrank",
-  "compatibility_date": "2025-11-27",
-  "main": "src/index.ts",
-  "compatibility_flags": ["nodejs_compat"],
-  "containers": [
-    {
-      "class_name": "Sandbox",
-      "image": "./Dockerfile",
-      "instance_type": "lite",
-      "max_instances": 1000,
-    },
-  ],
-  "durable_objects": {
-    "bindings": [
-      {
-        "class_name": "Sandbox",
-        "name": "Sandbox",
-      },
-    ],
-  },
-  "migrations": [
-    {
-      "new_sqlite_classes": ["Sandbox"],
-      "tag": "v1",
-    },
-  ],
-  "workflows": [
-    {
-      "name": "problem-generation-workflow",
-      "binding": "PROBLEM_GENERATION_WORKFLOW",
-      "class_name": "ProblemGenerationWorkflow",
-    },
-  ],
-  "observability": {
-    "logs": {
-      "enabled": true,
-      "head_sampling_rate": 1,
-      "invocation_logs": true,
-      "persist": true,
-    },
-  },
+	"name": "clankerrank",
+	"compatibility_date": "2025-11-27",
+	"main": "src/index.ts",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"containers": [
+		{
+			"class_name": "Sandbox",
+			"image": "./Dockerfile",
+			"instance_type": "lite",
+			"max_instances": 1000,
+		},
+	],
+	"durable_objects": {
+		"bindings": [
+			{
+				"class_name": "Sandbox",
+				"name": "Sandbox",
+			},
+		],
+	},
+	"migrations": [
+		{
+			"new_sqlite_classes": [
+				"Sandbox"
+			],
+			"tag": "v1",
+		},
+	],
+	"workflows": [
+		{
+			"name": "problem-generation-workflow",
+			"binding": "PROBLEM_GENERATION_WORKFLOW",
+			"class_name": "ProblemGenerationWorkflow",
+		},
+	],
+	"observability": {
+		"logs": {
+			"enabled": true,
+			"head_sampling_rate": 1,
+			"invocation_logs": true,
+			"persist": true,
+		},
+	},
+	"r2_buckets": [
+		{
+			"bucket_name": "clankerrank",
+			"binding": "clankerrank"
+		}
+	],
 }

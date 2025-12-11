@@ -22,7 +22,7 @@ export const problems = pgTable("problems", {
   problemText: text("problem_text").notNull(),
   functionSignature: text("function_signature").notNull(),
   functionSignatureSchema: jsonb(
-    "function_signature_schema",
+    "function_signature_schema"
   ).$type<FunctionSignatureSchema>(),
   problemTextReworded: text("problem_text_reworded").notNull(),
   solution: text("solution"),
@@ -59,7 +59,7 @@ export const problemFocusAreas = pgTable(
       .references(() => focusAreas.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => [unique().on(table.problemId, table.focusAreaId)],
+  (table) => [unique().on(table.problemId, table.focusAreaId)]
 );
 
 export const testCases = pgTable("test_cases", {
@@ -117,7 +117,7 @@ export const problemFocusAreasRelations = relations(
       fields: [problemFocusAreas.focusAreaId],
       references: [focusAreas.id],
     }),
-  }),
+  })
 );
 
 export const testCasesRelations = relations(testCases, ({ one }) => ({
@@ -170,8 +170,16 @@ export const designMessages = pgTable(
     contentParts: jsonb("content_parts"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => [unique().on(table.designSessionId, table.id)],
+  (table) => [unique().on(table.designSessionId, table.id)]
 );
+
+export const attachments = pgTable("attachments", {
+  id: text("id").primaryKey().notNull(),
+  messageId: text("message_id")
+    .notNull()
+    .references(() => designMessages.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
 
 export const userProblemAttempts = pgTable("user_problem_attempts", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -218,20 +226,31 @@ export const userProblemAttemptsRelations = relations(
       fields: [userProblemAttempts.problemId],
       references: [problems.id],
     }),
-  }),
+  })
 );
 
 export const designSessionsRelations = relations(
   designSessions,
   ({ many }) => ({
     messages: many(designMessages),
-  }),
+  })
 );
 
-export const designMessagesRelations = relations(designMessages, ({ one }) => ({
-  session: one(designSessions, {
-    fields: [designMessages.designSessionId],
-    references: [designSessions.id],
+export const designMessagesRelations = relations(
+  designMessages,
+  ({ one, many }) => ({
+    session: one(designSessions, {
+      fields: [designMessages.designSessionId],
+      references: [designSessions.id],
+    }),
+    attachments: many(attachments),
+  })
+);
+
+export const attachmentsRelations = relations(attachments, ({ one }) => ({
+  message: one(designMessages, {
+    fields: [attachments.messageId],
+    references: [designMessages.id],
   }),
 }));
 
@@ -254,3 +273,5 @@ export type DesignSession = typeof designSessions.$inferSelect;
 export type NewDesignSession = typeof designSessions.$inferInsert;
 export type DesignMessage = typeof designMessages.$inferSelect;
 export type NewDesignMessage = typeof designMessages.$inferInsert;
+export type Attachment = typeof attachments.$inferSelect;
+export type NewAttachment = typeof attachments.$inferInsert;

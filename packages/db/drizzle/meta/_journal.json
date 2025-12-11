@@ -120,6 +120,13 @@
       "when": 1765461115642,
       "tag": "0016_panoramic_amphibian",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1765470842181,
+      "tag": "0017_free_thor",
+      "breakpoints": true
     }
   ]
 }
