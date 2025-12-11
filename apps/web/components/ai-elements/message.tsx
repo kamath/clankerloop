@@ -1,7 +1,9 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { Button } from "@/components/ui/button";
 import { ButtonGroup, ButtonGroupText } from "@/components/ui/button-group";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import {
   Tooltip,
   TooltipContent,
@@ -16,7 +18,6 @@ import {
   PaperclipIcon,
   XIcon,
 } from "lucide-react";
-import Image from "next/image";
 import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
 import { createContext, memo, useContext, useEffect, useState } from "react";
 import { Streamdown } from "streamdown";
@@ -30,7 +31,7 @@ export const Message = ({ className, from, ...props }: MessageProps) => (
     className={cn(
       "group flex w-full max-w-[80%] flex-col gap-2",
       from === "user" ? "is-user ml-auto justify-end" : "is-assistant",
-      className,
+      className
     )}
     {...props}
   />
@@ -48,7 +49,7 @@ export const MessageContent = ({
       "is-user:dark flex w-fit flex-col gap-2 overflow-hidden text-sm",
       "group-[.is-user]:ml-auto group-[.is-user]:rounded-lg group-[.is-user]:bg-secondary group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground",
       "group-[.is-assistant]:text-foreground",
-      className,
+      className
     )}
     {...props}
   >
@@ -114,7 +115,7 @@ type MessageBranchContextType = {
 };
 
 const MessageBranchContext = createContext<MessageBranchContextType | null>(
-  null,
+  null
 );
 
 const useMessageBranch = () => {
@@ -122,7 +123,7 @@ const useMessageBranch = () => {
 
   if (!context) {
     throw new Error(
-      "MessageBranch components must be used within MessageBranch",
+      "MessageBranch components must be used within MessageBranch"
     );
   }
 
@@ -200,7 +201,7 @@ export const MessageBranchContent = ({
     <div
       className={cn(
         "grid gap-2 overflow-hidden [&>div]:pb-0",
-        index === currentBranch ? "block" : "hidden",
+        index === currentBranch ? "block" : "hidden"
       )}
       key={branch.key}
       {...props}
@@ -229,7 +230,7 @@ export const MessageBranchSelector = ({
     <ButtonGroup
       className={cn(
         "[&>*:not(:first-child)]:rounded-l-md [&>*:not(:last-child)]:rounded-r-md",
-        className,
+        className
       )}
       orientation="horizontal"
       {...props}
@@ -297,7 +298,7 @@ export const MessageBranchPage = ({
     <ButtonGroupText
       className={cn(
         "border-none bg-transparent text-muted-foreground shadow-none",
-        className,
+        className
       )}
       {...props}
     >
@@ -313,12 +314,12 @@ export const MessageResponse = memo(
     <Streamdown
       className={cn(
         "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_ul]:pl-6 [&_ol]:pl-6",
-        className,
+        className
       )}
       {...props}
     />
   ),
-  (prevProps, nextProps) => prevProps.children === nextProps.children,
+  (prevProps, nextProps) => prevProps.children === nextProps.children
 );
 
 MessageResponse.displayName = "MessageResponse";
@@ -340,24 +341,54 @@ export function MessageAttachment({
     data.mediaType?.startsWith("image/") && data.url ? "image" : "file";
   const isImage = mediaType === "image";
   const attachmentLabel = filename || (isImage ? "Image" : "Attachment");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   return (
     <div
       className={cn(
-        "group relative size-24 overflow-hidden rounded-lg",
-        className,
+        "group relative overflow-hidden rounded-lg",
+        isImage ? "max-w-24 max-h-24" : "size-24",
+        className
       )}
       {...props}
     >
       {isImage ? (
         <>
-          <Image
-            alt={filename || "attachment"}
-            className="size-full object-cover"
-            height={100}
-            src={data.url}
-            width={100}
-          />
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <button
+                type="button"
+                className="cursor-pointer border-0 bg-transparent p-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+              >
+                <img
+                  alt={filename || "attachment"}
+                  className="h-auto w-auto max-h-24 max-w-24 object-contain"
+                  src={data.url}
+                />
+              </button>
+            </DialogTrigger>
+            <DialogContent
+              className="max-w-[90vw] max-h-[90vh] p-2 overflow-hidden gap-0"
+              showCloseButton={true}
+            >
+              <div
+                className="flex items-center justify-center overflow-hidden"
+                style={{
+                  maxHeight: "calc(90vh - 4rem)",
+                  maxWidth: "calc(90vw - 4rem)",
+                }}
+              >
+                <img
+                  alt={filename || "attachment"}
+                  className="h-auto w-auto max-h-full max-w-full object-contain"
+                  src={data.url}
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
           {onRemove && (
             <Button
               aria-label="Remove attachment"
@@ -422,7 +453,7 @@ export function MessageAttachments({
     <div
       className={cn(
         "ml-auto flex w-fit flex-wrap items-start gap-2",
-        className,
+        className
       )}
       {...props}
     >
@@ -441,7 +472,7 @@ export const MessageToolbar = ({
   <div
     className={cn(
       "mt-4 flex w-full items-center justify-between gap-4",
-      className,
+      className
     )}
     {...props}
   >
