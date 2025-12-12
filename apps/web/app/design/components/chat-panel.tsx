@@ -15,11 +15,6 @@ import {
 } from "@/components/ai-elements/message";
 import { useDesignChatAtom } from "../atoms/chat-atoms";
 import { CopyIcon, RefreshCcwIcon } from "lucide-react";
-import {
-  Reasoning,
-  ReasoningContent,
-  ReasoningTrigger,
-} from "@/components/ai-elements/reasoning";
 import { exportToCanvas, Excalidraw } from "@excalidraw/excalidraw";
 import { DesignMessage } from "../../../../../packages/api-types/src/schemas/design";
 import { cn } from "@/lib/utils";

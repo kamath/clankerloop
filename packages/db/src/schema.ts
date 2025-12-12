@@ -173,7 +173,6 @@ export const designMessages = pgTable(
   (table) => [unique().on(table.designSessionId, table.id)],
 );
 
-
 export const userProblemAttempts = pgTable("user_problem_attempts", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: text("user_id").notNull(),
@@ -229,15 +228,12 @@ export const designSessionsRelations = relations(
   }),
 );
 
-export const designMessagesRelations = relations(
-  designMessages,
-  ({ one }) => ({
-    session: one(designSessions, {
-      fields: [designMessages.designSessionId],
-      references: [designSessions.id],
-    }),
+export const designMessagesRelations = relations(designMessages, ({ one }) => ({
+  session: one(designSessions, {
+    fields: [designMessages.designSessionId],
+    references: [designSessions.id],
   }),
-);
+}));
 
 // Type exports
 export type Model = typeof models.$inferSelect;

@@ -7,7 +7,7 @@ export async function streamDesignChat(
   messages: ModelMessage[],
   model: string,
   userId: string,
-  env: Env
+  env: Env,
 ) {
   const requestId = `design-chat-${userId}-${Date.now()}`;
   const tracedModel = getTracedClient(model, userId, requestId, model, env);
@@ -29,7 +29,7 @@ export async function streamDesignChat(
             (p): p is TextPart | ImagePart | FilePart =>
               p.type === "text" ||
               p.type === "image" ||
-              (p.type === "file" && isLastMessage)
+              (p.type === "file" && isLastMessage),
           ),
         };
       }
@@ -37,7 +37,7 @@ export async function streamDesignChat(
         ...m,
         content: m.content.filter(
           (p): p is TextPart | FilePart =>
-            p.type === "text" || (p.type === "file" && isLastMessage)
+            p.type === "text" || (p.type === "file" && isLastMessage),
         ),
       };
     }),

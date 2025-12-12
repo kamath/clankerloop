@@ -94,7 +94,7 @@ design.openapi(getSessionMessagesRoute, async (c) => {
       parts: msg.parts
         .filter(
           (
-            part
+            part,
           ): part is
             | { type: "text"; text: string }
             | {
@@ -102,7 +102,7 @@ design.openapi(getSessionMessagesRoute, async (c) => {
                 url: string;
                 mediaType: string;
                 filename: string;
-              } => part.type === "text" || part.type === "file"
+              } => part.type === "text" || part.type === "file",
         )
         .map((part) => {
           if (part.type === "text") {
@@ -123,7 +123,7 @@ design.openapi(getSessionMessagesRoute, async (c) => {
       success: true as const,
       data: transformedMessages,
     },
-    200
+    200,
   );
 });
 
@@ -178,14 +178,14 @@ design.openapi(sessionChatRoute, async (c) => {
       id: allMessages[index]?.id ?? crypto.randomUUID(),
     })),
     uploadBase64Image,
-    db
+    db,
   );
 
   const result = await streamDesignChat(
     normalizedMessages,
     modelName,
     userId,
-    c.env
+    c.env,
   );
 
   // Add onFinish callback to save both user and assistant messages
@@ -205,13 +205,13 @@ design.openapi(sessionChatRoute, async (c) => {
           id: updatedMessages[index].id,
         })),
         uploadBase64Image,
-        db
+        db,
       );
 
       // Auto-generate title from first assistant message if needed
       if (!session.title && modelMessages.length >= 2) {
         const firstAssistantMsg = modelMessages.find(
-          (m) => m.role === "assistant"
+          (m) => m.role === "assistant",
         );
         if (firstAssistantMsg) {
           const title = generateTitleFromMessage(firstAssistantMsg);
