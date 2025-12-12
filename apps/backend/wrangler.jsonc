@@ -40,4 +40,11 @@
       "persist": true,
     },
   },
+  "r2_buckets": [
+    {
+      "bucket_name": "clankerrank",
+      "binding": "clankerrank",
+      "remote": true,
+    },
+  ],
 }

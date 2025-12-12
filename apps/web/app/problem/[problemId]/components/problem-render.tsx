@@ -22,10 +22,9 @@ import {
   type CodeGenLanguage,
 } from "@/hooks/use-problem";
 import { Skeleton } from "@/components/ui/skeleton";
-import Link from "next/link";
 import { ClientFacingUserObject } from "@/lib/auth-types";
-import { signOutAction } from "@/app/(auth)/signout";
 import { Loader2Icon, PlayIcon, SendIcon } from "lucide-react";
+import { AppHeader } from "@/components/app-header";
 import {
   Select,
   SelectContent,
@@ -45,7 +44,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import NonAdminProblemView from "./non-admin-problem-view";
 import CustomTestInputs from "./custom-test-inputs";
-import { IssueReportDialog } from "./issue-report-dialog";
 
 export default function ProblemRender({
   problemId,
@@ -192,36 +190,7 @@ export default function ProblemRender({
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-muted">
-      <div className="w-full p-4 flex items-center justify-between gap-4 border-b border-border bg-card flex-shrink-0">
-        <div className="flex items-center gap-4">
-          <Link href="/">
-            <h1
-              className="text-xl font-bold hover:cursor-pointer"
-              style={{ fontFamily: "var(--font-comic-relief)" }}
-            >
-              ClankerLoop
-            </h1>
-          </Link>
-          <p>&middot;</p>
-          <div className="font-comic-relief">
-            hi {user.firstName.toLowerCase()}{" "}
-            <form
-              action={async () => {
-                await signOutAction();
-              }}
-              className="inline"
-            >
-              <button
-                type="submit"
-                className="text-blue-500 hover:underline hover:cursor-pointer"
-              >
-                (sign out)
-              </button>
-            </form>
-          </div>
-          <IssueReportDialog />
-        </div>
-      </div>
+      <AppHeader user={user} />
       <ResizablePanelGroup
         direction="horizontal"
         className="flex-1 w-full min-h-0"

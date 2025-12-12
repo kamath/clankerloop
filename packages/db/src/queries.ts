@@ -8,6 +8,8 @@ import {
   focusAreas,
   problemFocusAreas,
   userProblemAttempts,
+  designSessions,
+  designMessages,
   type Model,
   type Problem,
   type TestCase,
@@ -22,7 +24,12 @@ import {
   type NewProblemFocusArea,
   type UserProblemAttempt,
   type NewUserProblemAttempt,
+  type DesignSession,
+  type NewDesignSession,
+  type DesignMessage,
+  type NewDesignMessage,
 } from "./schema";
+import type { FilePart, ModelMessage, UIMessage } from "ai";
 
 // Re-export types for convenience
 export type {
@@ -40,6 +47,10 @@ export type {
   NewProblemFocusArea,
   UserProblemAttempt,
   NewUserProblemAttempt,
+  DesignSession,
+  NewDesignSession,
+  DesignMessage,
+  NewDesignMessage,
 };
 
 // Re-export Database type
@@ -482,4 +493,194 @@ export async function getMostRecentProblemByUser(
     orderBy: desc(problems.createdAt),
   });
   return problem?.id ?? null;
+}
+
+// Design Session functions
+
+export async function createDesignSession(
+  userId: string,
+  title?: string,
+  db?: Database,
+): Promise<string> {
+  const database = getDb(db);
+  const [result] = await database
+    .insert(designSessions)
+    .values({
+      userId,
+      title: title ?? null,
+    })
+    .returning({ id: designSessions.id });
+
+  if (!result || !result.id) {
+    throw new Error("Failed to create design session");
+  }
+
+  return result.id;
+}
+
+export async function getDesignSession(
+  sessionId: string,
+  db?: Database,
+): Promise<DesignSession | null> {
+  const database = getDb(db);
+  const session = await database.query.designSessions.findFirst({
+    where: eq(designSessions.id, sessionId),
+  });
+  return session ?? null;
+}
+
+export async function updateDesignSessionTitle(
+  sessionId: string,
+  title: string,
+  db?: Database,
+): Promise<void> {
+  const database = getDb(db);
+  await database
+    .update(designSessions)
+    .set({
+      title,
+      updatedAt: new Date(),
+    })
+    .where(eq(designSessions.id, sessionId));
+}
+
+export async function listDesignSessionsByUser(
+  userId: string,
+  db?: Database,
+): Promise<DesignSession[]> {
+  const database = getDb(db);
+  return database.query.designSessions.findMany({
+    where: eq(designSessions.userId, userId),
+    orderBy: desc(designSessions.updatedAt),
+  });
+}
+
+// Design Message functions
+
+export async function saveDesignMessages(
+  sessionId: string,
+  messages: (ModelMessage & { id: string })[],
+  uploadBase64Image: (key: string, filePart: FilePart) => Promise<void>,
+  db?: Database,
+): Promise<void> {
+  console.log("Saving messages:", JSON.stringify(messages, null, 2));
+  const database = getDb(db);
+
+  // Process messages: upload files and replace base64 with R2 keys
+  const processedMessages = await Promise.all(
+    messages.map(async (msg) => {
+      if (!Array.isArray(msg.content)) {
+        return {
+          id: msg.id,
+          designSessionId: sessionId,
+          role: msg.role,
+          content: JSON.stringify(msg.content),
+          contentParts: msg.content,
+        };
+      }
+
+      // Process content parts, uploading files and replacing URLs with R2 keys
+      const processedParts = await Promise.all(
+        msg.content.map(async (part) => {
+          if (part.type !== "file") {
+            return part;
+          }
+
+          const filePart = part as FilePart;
+          const r2Key = `${sessionId}/${msg.id}/${filePart.filename}`;
+
+          try {
+            await uploadBase64Image(r2Key, filePart);
+            // Return file part with R2 key instead of base64 data
+            return {
+              type: "file" as const,
+              url: r2Key,
+              mediaType: filePart.mediaType,
+              filename: filePart.filename,
+            };
+          } catch (error) {
+            console.error(`Failed to upload file ${r2Key}:`, error);
+            // On failure, still store the key (file may already exist)
+            return {
+              type: "file" as const,
+              url: r2Key,
+              mediaType: filePart.mediaType,
+              filename: filePart.filename,
+            };
+          }
+        }),
+      );
+
+      return {
+        id: msg.id,
+        designSessionId: sessionId,
+        role: msg.role,
+        content: JSON.stringify(msg.content),
+        contentParts: processedParts,
+      };
+    }),
+  );
+
+  // Insert all messages, using onConflictDoNothing to skip duplicates
+  await database
+    .insert(designMessages)
+    .values(processedMessages)
+    .onConflictDoNothing();
+
+  console.log("Messages saved");
+  // Update session timestamp
+  await database
+    .update(designSessions)
+    .set({ updatedAt: new Date() })
+    .where(eq(designSessions.id, sessionId));
+}
+
+export async function loadDesignMessages(
+  sessionId: string,
+  db?: Database,
+  r2BaseUrl?: string,
+): Promise<
+  {
+    id: string;
+    role: "user" | "assistant" | "system" | "tool";
+    parts: UIMessage["parts"];
+    createdAt: string;
+  }[]
+> {
+  const database = getDb(db);
+  const messages = await database.query.designMessages.findMany({
+    where: eq(designMessages.designSessionId, sessionId),
+    orderBy: designMessages.createdAt,
+  });
+
+  return messages.map((msg) => {
+    // contentParts already has the processed structure with R2 keys
+    const storedParts = msg.contentParts as UIMessage["parts"] | null;
+
+    // Transform file parts to have full R2 URLs
+    const parts: UIMessage["parts"] = Array.isArray(storedParts)
+      ? storedParts.map((part) => {
+          if (
+            part?.type === "file" &&
+            "url" in part &&
+            typeof part.url === "string" &&
+            !part.url.startsWith("http")
+          ) {
+            // Prepend R2 base URL to the stored key
+            return {
+              ...part,
+              url: `${r2BaseUrl}/${part.url}`,
+            };
+          }
+          return part;
+        })
+      : [];
+
+    return {
+      id: msg.id,
+      role: msg.role,
+      parts,
+      createdAt: msg.createdAt.toISOString(),
+    };
+  });
 }

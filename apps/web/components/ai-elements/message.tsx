@@ -1,7 +1,9 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { Button } from "@/components/ui/button";
 import { ButtonGroup, ButtonGroupText } from "@/components/ui/button-group";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import {
   Tooltip,
   TooltipContent,
@@ -16,7 +18,6 @@ import {
   PaperclipIcon,
   XIcon,
 } from "lucide-react";
-import Image from "next/image";
 import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
 import { createContext, memo, useContext, useEffect, useState } from "react";
 import { Streamdown } from "streamdown";
@@ -340,24 +341,54 @@ export function MessageAttachment({
     data.mediaType?.startsWith("image/") && data.url ? "image" : "file";
   const isImage = mediaType === "image";
   const attachmentLabel = filename || (isImage ? "Image" : "Attachment");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   return (
     <div
       className={cn(
-        "group relative size-24 overflow-hidden rounded-lg",
+        "group relative overflow-hidden rounded-lg",
+        isImage ? "max-w-24 max-h-24" : "size-24",
         className,
       )}
       {...props}
     >
       {isImage ? (
         <>
-          <Image
-            alt={filename || "attachment"}
-            className="size-full object-cover"
-            height={100}
-            src={data.url}
-            width={100}
-          />
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <button
+                type="button"
+                className="cursor-pointer border-0 bg-transparent p-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+              >
+                <img
+                  alt={filename || "attachment"}
+                  className="h-auto w-auto max-h-24 max-w-24 object-contain"
+                  src={data.url}
+                />
+              </button>
+            </DialogTrigger>
+            <DialogContent
+              className="max-w-[90vw] max-h-[90vh] p-2 overflow-hidden gap-0"
+              showCloseButton={true}
+            >
+              <div
+                className="flex items-center justify-center overflow-hidden"
+                style={{
+                  maxHeight: "calc(90vh - 4rem)",
+                  maxWidth: "calc(90vw - 4rem)",
+                }}
+              >
+                <img
+                  alt={filename || "attachment"}
+                  className="h-auto w-auto max-h-full max-w-full object-contain"
+                  src={data.url}
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
           {onRemove && (
             <Button
               aria-label="Remove attachment"
