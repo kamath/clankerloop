@@ -21,7 +21,6 @@ import {
   convertToModelMessages,
   createIdGenerator,
   type ModelMessage,
-  type UIMessage,
 } from "ai";
 
 const design = new OpenAPIHono<{
@@ -94,8 +93,16 @@ design.openapi(getSessionMessagesRoute, async (c) => {
       role: msg.role as "user" | "assistant" | "system",
       parts: msg.parts
         .filter(
-          (part): part is { type: "text"; text: string } | { type: "file"; url: string; mediaType: string; filename: string } =>
-            part.type === "text" || part.type === "file"
+          (
+            part
+          ): part is
+            | { type: "text"; text: string }
+            | {
+                type: "file";
+                url: string;
+                mediaType: string;
+                filename: string;
+              } => part.type === "text" || part.type === "file"
         )
         .map((part) => {
           if (part.type === "text") {
@@ -155,7 +162,10 @@ design.openapi(sessionChatRoute, async (c) => {
   }
 
   // Use messages from request (client sends full conversation)
-  const allMessages = body.messages as unknown as UIMessage[];
+  // The validated body.messages conforms to ChatMessageSchema which uses .passthrough()
+  // Cast is needed because Zod's permissive schema doesn't match AI SDK's strict UIMessage type
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const allMessages = body.messages as any;
   const normalizedMessages = convertToModelMessages(allMessages);
 
   // Create R2 upload function for base64 images
@@ -163,7 +173,10 @@ design.openapi(sessionChatRoute, async (c) => {
 
   await saveDesignMessages(
     sessionId,
-    normalizedMessages.map((m, index) => ({ ...m, id: allMessages[index].id })),
+    normalizedMessages.map((m, index) => ({
+      ...m,
+      id: allMessages[index]?.id ?? crypto.randomUUID(),
+    })),
     uploadBase64Image,
     db
   );
@@ -176,7 +189,7 @@ design.openapi(sessionChatRoute, async (c) => {
   );
 
   // Add onFinish callback to save both user and assistant messages
-  return result.toUIMessageStreamResponse({
+  const response = result.toUIMessageStreamResponse({
     generateMessageId: createIdGenerator({
       prefix: "design-message-",
       size: 16,
@@ -206,7 +219,12 @@ design.openapi(sessionChatRoute, async (c) => {
         }
       }
     },
-  }) as any;
+  });
+
+  // OpenAPIHono doesn't properly type streaming responses
+  // The toUIMessageStreamResponse returns a Response object which is correct for streaming
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return response as any;
 });
 
 export { design };
